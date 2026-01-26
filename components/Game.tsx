@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sphere, OrbitControls, Plane } from '@react-three/drei'
+import { Sphere, OrbitControls, Plane, Sky, Environment } from '@react-three/drei'
 import { useRef, useState, useEffect, type FC } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
@@ -12,11 +12,13 @@ type Balloon = {
   x: number
   y: number
   z: number
+  radius: number
   speed: number
   color: string
 }
 
-const BALLOON_RADIUS = 0.3
+const BALLOON_MIN_RADIUS = 0.3
+const BALLOON_MAX_RADIUS = 0.6
 
 const BALLOON_MIN_Z = -5
 const BALLOON_MAX_Z = 0
@@ -24,7 +26,7 @@ const BALLOON_MAX_Z = 0
 const START_Y_CLOSEST = -3.5
 const START_Y_FARTHEST = -8
 // BALLOON_END_Y will be calculated dynamically based on viewport/camera
-const EMIT_INTERVAL = 2000 // ms
+const EMIT_INTERVAL = 1000 // ms
 
 const COLORS = [
   '#e63946', // red
@@ -69,15 +71,16 @@ const Balloons: FC = () => {
       const zClamped = Math.max(BALLOON_MIN_Z, Math.min(0, z))
       const t = (zClamped - BALLOON_MIN_Z) / (0 - BALLOON_MIN_Z)
       const y = START_Y_FARTHEST + t * (START_Y_CLOSEST - START_Y_FARTHEST)
-
+      const radius = getRandom(BALLOON_MIN_RADIUS, BALLOON_MAX_RADIUS)
       // Calculate X bounds based on camera frustum at this Z
       let minX = -2.5,
         maxX = 2.5
       if (camera && 'fov' in camera && 'aspect' in camera) {
         const frustumWidth = getFrustumWidthAtZ(camera, z)
-        minX = -frustumWidth / 2 + BALLOON_RADIUS
-        maxX = frustumWidth / 2 - BALLOON_RADIUS
+        minX = -frustumWidth / 2 + BALLOON_MAX_RADIUS
+        maxX = frustumWidth / 2 - BALLOON_MAX_RADIUS
       }
+
       setBalloons((prev) => [
         ...prev,
         {
@@ -85,7 +88,8 @@ const Balloons: FC = () => {
           x: getRandom(minX, maxX),
           y,
           z,
-          speed: getRandom(0.008, 0.018),
+          radius,
+          speed: getRandom(0.008, 0.033),
           color: getRandomColor(),
         },
       ])
@@ -98,12 +102,17 @@ const Balloons: FC = () => {
     balloons.forEach((b) => {
       const mesh = meshRefs.current[b.id]
       if (mesh) mesh.position.y += b.speed
-      // Optionally: remove balloon if mesh.position.y > limit
-      if (mesh && mesh.position.y > 5) {
+
+      // REMOVE BALLOON IF IT GOES ABOVE THE POSITIVE/OPPOSITE OF START Y (which was negative)
+      if (mesh && mesh.position.y > -b.y) {
         setBalloons((prev) => prev.filter((balloon) => balloon.id !== b.id))
       }
     })
   })
+
+  const removeBalloon = (id: number) => {
+    setBalloons((prev) => prev.filter((b) => b.id !== id))
+  }
 
   useEffect(() => {
     console.log('Current balloons:', balloons)
@@ -117,9 +126,13 @@ const Balloons: FC = () => {
           ref={(ref) => {
             if (ref) meshRefs.current[b.id] = ref
           }}
-          args={[BALLOON_RADIUS, 32, 32]}
-          position={[b.x, b.y, b.z]}>
-          <meshStandardMaterial color={b.color} transparent={true} opacity={0.8} metalness={0.7} roughness={0.2} />
+          args={[b.radius, 32, 32]}
+          position={[b.x, b.y, b.z]}
+          onClick={(e) => {
+            e.stopPropagation()
+            removeBalloon(b.id)
+          }}>
+          <meshStandardMaterial color={b.color} transparent={true} opacity={0.5} metalness={0.65} roughness={0.2} />
         </Sphere>
       ))}
     </>
@@ -129,6 +142,9 @@ const Balloons: FC = () => {
 const Game: FC = () => {
   return (
     <Canvas camera={{ position: [0, 0, 5], fov: 60 }} className="border border-blue-300">
+      <Sky sunPosition={[-15, 5, -10]} turbidity={15} rayleigh={0.5} mieCoefficient={0.01} mieDirectionalG={1} />
+      <Environment preset="dawn" />
+
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
       <Balloons />
