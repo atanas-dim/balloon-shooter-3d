@@ -14,34 +14,26 @@ type BalloonProps = {
 
 const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.5, onBurstComplete }) => {
   const meshRef = useRef<Mesh>(null)
-  const [burst, setBurst] = useState(false)
-
-  const burstDuration = 40 // frames
-  const burstFrame = useRef(0)
+  const [isBursting, setIsBursting] = useState(false)
 
   // Call this on click to start the burst
   const triggerBurst = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
-    if (burst) return
-    setBurst(true)
-
-    burstFrame.current = 0
-  }
-
-  useFrame(() => {
-    // Animate balloon scale down
-    if (burst && meshRef.current) {
-      meshRef.current.scale.multiplyScalar(0.5)
-    }
-
-    // Remove balloon after burst animation
-    if (burst) {
-      burstFrame.current++
-      if (burstFrame.current > burstDuration) {
+    if (isBursting) return
+    setIsBursting(true)
+    let scale = 1
+    const animate = () => {
+      if (!meshRef.current) return
+      scale *= 0.6
+      meshRef.current.scale.setScalar(scale)
+      if (scale > 0.01) {
+        requestAnimationFrame(animate)
+      } else {
         if (onBurstComplete) onBurstComplete()
       }
     }
-  })
+    animate()
+  }
 
   return (
     <group ref={groupRef} position={position}>
@@ -56,7 +48,7 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
         onClick={triggerBurst}>
         <meshStandardMaterial color={color} transparent={true} opacity={0.5} metalness={0.65} roughness={0.2} />
       </Sphere>
-      {burst && <ExplodingParticles color={color} />}
+      {isBursting && <ExplodingParticles color={color} />}
     </group>
   )
 }
