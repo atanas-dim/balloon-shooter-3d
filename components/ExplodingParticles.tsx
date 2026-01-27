@@ -51,20 +51,24 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
       for (let i = 0; i < particles.length; i++) {
         const mesh = meshRefs.current[i]
         if (!mesh) continue
-        // Physics: s = v0 * t + 0.5 * a * t^2
-        const v0 = particles[i].velocity
-        const t = elapsed
+
+        const velocity = particles[i].velocity
         // Gravity
-        const g = 0.8 // slightly stronger gravity for visible arc
+        const gravity = 0.8
         const pos = new Vector3(...mesh.position.toArray())
-        pos.x += v0.x * t
-        pos.y += v0.y * t - 0.5 * g * t * t
-        pos.z += v0.z * t
+        // Official kinematic equations for projectile motion:
+        // x = velocity.x * time
+        // y = velocity.y * time - 0.5 * g * time^2
+        // z = velocity.z * time
+        pos.x += velocity.x * elapsed
+        pos.y += velocity.y * elapsed - 0.5 * gravity * elapsed * elapsed
+        pos.z += velocity.z * elapsed
         mesh.position.copy(pos)
+
         // Fade out
         // const opacity = 1 - t / duration
         // mesh.material.opacity = opacity > 0 ? opacity : 0
-        // Optionally animate rotation
+
         mesh.rotation.set(particles[i].rotation, particles[i].rotation, particles[i].rotation)
       }
       console.log({ elapsed, duration })
