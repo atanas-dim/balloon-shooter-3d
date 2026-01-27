@@ -1,14 +1,14 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Plane } from '@react-three/drei'
-import { useRef, useState, useEffect, type FC, useCallback } from 'react'
+import { OrbitControls, Plane, Sphere } from '@react-three/drei'
+import { useRef, useState, useEffect, type FC, useCallback, Suspense } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
-import { Mesh } from 'three/src/objects/Mesh.js'
 import Environment from '@/components/Environment'
 import Balloon from '@/components/Balloon'
 import { Group } from 'three'
+import { Physics, RigidBody } from '@react-three/rapier'
 
 type BalloonDef = {
   id: number
@@ -16,7 +16,6 @@ type BalloonDef = {
   y: number
   z: number
   radius: number
-  speed: number
   color: string
 }
 
@@ -92,7 +91,6 @@ const Balloons: FC = () => {
           y,
           z,
           radius,
-          speed: getRandom(0.008, 0.013),
           color: getRandomColor(),
         },
       ])
@@ -104,7 +102,6 @@ const Balloons: FC = () => {
   useFrame(() => {
     balloons.forEach((b) => {
       const mesh = balloonRefs.current[b.id]
-      if (mesh) mesh.position.y += b.speed
 
       // REMOVE BALLOON IF IT GOES ABOVE THE POSITIVE/OPPOSITE OF START Y (which was negative)
       if (mesh && mesh.position.y > -b.y) {
@@ -147,13 +144,24 @@ const Game: FC = () => {
 
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
-      <Balloons />
       <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
 
-      {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
-      <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
-        <meshStandardMaterial color={'green'} />
-      </Plane>
+      <Suspense>
+        <Physics gravity={[0, 0.5, 0]}>
+          <Balloons />
+
+          {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
+          <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
+            <meshStandardMaterial color={'green'} />
+          </Plane>
+
+          <RigidBody lockTranslations colliders="ball">
+            <Sphere args={[10, 32, 32]} position={[0, 8, 0]}>
+              <meshStandardMaterial color={'yellow'} transparent opacity={0.2} />
+            </Sphere>
+          </RigidBody>
+        </Physics>
+      </Suspense>
     </Canvas>
   )
 }

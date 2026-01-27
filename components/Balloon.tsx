@@ -3,6 +3,7 @@ import { ThreeEvent } from '@react-three/fiber'
 import { Sphere } from '@react-three/drei/core/shapes'
 import { Group, Mesh } from 'three'
 import ExplodingParticles from '@/components/ExplodingParticles'
+import { RigidBody } from '@react-three/rapier'
 
 type BalloonProps = {
   ref?: React.Ref<Group>
@@ -16,9 +17,10 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
   const meshRef = useRef<Mesh>(null)
   const [isBursting, setIsBursting] = useState(false)
 
+  const [isAsleep, setIsAsleep] = useState(false)
+
   // Call this on click to start the burst
-  const triggerBurst = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation()
+  const triggerBurst = () => {
     if (isBursting) return
 
     setIsBursting(true)
@@ -38,20 +40,35 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
   }
 
   return (
-    <group ref={groupRef} position={position}>
-      {/* Balloon */}
-      <Sphere
-        ref={(ref) => {
-          if (ref) {
-            meshRef.current = ref
-          }
-        }}
-        args={[radius, 12, 12]}
-        onClick={triggerBurst}>
-        <meshStandardMaterial color={color} transparent={true} opacity={0.5} metalness={0.65} roughness={0.2} />
-      </Sphere>
-      {isBursting && <ExplodingParticles color={color} onBurstComplete={onBurstComplete} />}
-    </group>
+    <RigidBody
+      onSleep={() => setIsAsleep(true)}
+      onWake={() => setIsAsleep(false)}
+      onCollisionEnter={triggerBurst}
+      colliders="ball">
+      <group ref={groupRef} position={position}>
+        <Sphere
+          ref={(ref) => {
+            if (ref) {
+              meshRef.current = ref
+            }
+          }}
+          args={[radius, 24, 24]}
+          onClick={(e) => {
+            e.stopPropagation()
+            triggerBurst()
+          }}>
+          <meshStandardMaterial
+            color={isAsleep ? 'blue' : color}
+            transparent={true}
+            opacity={0.5}
+            metalness={0.65}
+            roughness={0.2}
+          />
+        </Sphere>
+
+        {isBursting && <ExplodingParticles color={color} onBurstComplete={onBurstComplete} />}
+      </group>
+    </RigidBody>
   )
 }
 
