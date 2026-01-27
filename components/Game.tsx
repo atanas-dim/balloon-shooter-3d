@@ -1,13 +1,15 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Sphere, OrbitControls, Plane, Sky, Environment } from '@react-three/drei'
+import { OrbitControls, Plane } from '@react-three/drei'
 import { useRef, useState, useEffect, type FC } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
 import { Mesh } from 'three/src/objects/Mesh.js'
+import Environment from '@/components/Environment'
+import Balloon from '@/components/Balloon'
 
-type Balloon = {
+type BalloonDef = {
   id: number
   x: number
   y: number
@@ -57,7 +59,7 @@ function getFrustumWidthAtZ(camera: PerspectiveCamera, z: number) {
 }
 
 const Balloons: FC = () => {
-  const [balloons, setBalloons] = useState<Balloon[]>([])
+  const [balloons, setBalloons] = useState<BalloonDef[]>([])
   const { camera } = useThree()
   const balloonId = useRef(0)
 
@@ -89,7 +91,7 @@ const Balloons: FC = () => {
           y,
           z,
           radius,
-          speed: getRandom(0.008, 0.033),
+          speed: getRandom(0.008, 0.013),
           color: getRandomColor(),
         },
       ])
@@ -114,26 +116,22 @@ const Balloons: FC = () => {
     setBalloons((prev) => prev.filter((b) => b.id !== id))
   }
 
-  useEffect(() => {
-    console.log('Current balloons:', balloons)
-  }, [balloons])
-
   return (
     <>
       {balloons.map((b) => (
-        <Sphere
+        <Balloon
           key={b.id}
           ref={(ref) => {
             if (ref) meshRefs.current[b.id] = ref
           }}
-          args={[b.radius, 32, 32]}
           position={[b.x, b.y, b.z]}
-          onClick={(e) => {
-            e.stopPropagation()
+          color={b.color}
+          radius={b.radius}
+          onBurstComplete={() => {
+            console.log(`Balloon ${b.id} burst complete`)
             removeBalloon(b.id)
-          }}>
-          <meshStandardMaterial color={b.color} transparent={true} opacity={0.5} metalness={0.65} roughness={0.2} />
-        </Sphere>
+          }}
+        />
       ))}
     </>
   )
@@ -141,9 +139,8 @@ const Balloons: FC = () => {
 
 const Game: FC = () => {
   return (
-    <Canvas camera={{ position: [0, 0, 5], fov: 60 }} className="border border-blue-300">
-      <Sky sunPosition={[-15, 5, -10]} turbidity={15} rayleigh={0.5} mieCoefficient={0.01} mieDirectionalG={1} />
-      <Environment preset="dawn" />
+    <Canvas camera={{ position: [0, 0, 10], fov: 30 }}>
+      <Environment />
 
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
