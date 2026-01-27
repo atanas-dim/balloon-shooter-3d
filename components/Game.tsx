@@ -144,7 +144,7 @@ const Game: FC = () => {
       <Environment />
 
       <ambientLight intensity={0.7} />
-      <directionalLight position={[5, 10, 5]} intensity={0.8} />
+      <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
       <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
 
       <Suspense>
