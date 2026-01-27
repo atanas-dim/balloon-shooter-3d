@@ -1,8 +1,8 @@
 import { type FC, useRef, useState } from 'react'
-import { ThreeEvent, useFrame } from '@react-three/fiber'
+import { ThreeEvent } from '@react-three/fiber'
 import { Sphere } from '@react-three/drei/core/shapes'
 import { Group, Mesh } from 'three'
-import { ExplodingParticles } from '@/components/ExplodingParticles'
+import ExplodingParticles from '@/components/ExplodingParticles'
 
 type BalloonProps = {
   ref?: React.Ref<Group>
@@ -28,8 +28,6 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
       meshRef.current.scale.setScalar(scale)
       if (scale > 0.01) {
         requestAnimationFrame(animate)
-      } else {
-        if (onBurstComplete) onBurstComplete()
       }
     }
     animate()
@@ -48,7 +46,7 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
         onClick={triggerBurst}>
         <meshStandardMaterial color={color} transparent={true} opacity={0.5} metalness={0.65} roughness={0.2} />
       </Sphere>
-      {isBursting && <ExplodingParticles color={color} />}
+      {isBursting && <ExplodingParticles color={color} onBurstComplete={onBurstComplete} />}
     </group>
   )
 }

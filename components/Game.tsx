@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Plane } from '@react-three/drei'
-import { useRef, useState, useEffect, type FC } from 'react'
+import { useRef, useState, useEffect, type FC, useCallback } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
 import { Mesh } from 'three/src/objects/Mesh.js'
@@ -117,6 +117,11 @@ const Balloons: FC = () => {
     setBalloons((prev) => prev.filter((b) => b.id !== id))
   }
 
+  const onBurstComplete = useCallback((id: number) => {
+    console.log(`BURST !!! Balloon ${id} burst complete`)
+    removeBalloon(id)
+  }, [])
+
   return (
     <>
       {balloons.map((b) => (
@@ -128,10 +133,7 @@ const Balloons: FC = () => {
           position={[b.x, b.y, b.z]}
           color={b.color}
           radius={b.radius}
-          onBurstComplete={() => {
-            console.log(`Balloon ${b.id} burst complete`)
-            removeBalloon(b.id)
-          }}
+          onBurstComplete={() => onBurstComplete(b.id)}
         />
       ))}
     </>
