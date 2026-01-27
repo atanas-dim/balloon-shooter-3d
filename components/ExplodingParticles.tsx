@@ -1,6 +1,8 @@
 import { type FC, useEffect, useRef, useState } from 'react'
 import { Mesh, Vector3 } from 'three'
 
+const SHAPES = ['plane', 'circle', 'triangle'] as const
+
 // X/Z: random in [-max, max], Y: random in [min, max]
 const getVelocity = (min: number, max: number) => {
   const randX = (Math.random() - 0.5) * 2 * max
@@ -11,6 +13,11 @@ const getVelocity = (min: number, max: number) => {
 
 const getRotation = () => {
   return Math.random() * Math.PI * 2
+}
+
+const getRandomShape = () => {
+  const index = Math.floor(Math.random() * SHAPES.length)
+  return SHAPES[index]
 }
 
 type ExplodingParticlesProps = {
@@ -30,11 +37,13 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
     {
       velocity: Vector3
       rotation: number
+      shape: (typeof SHAPES)[number]
     }[]
   >(
     new Array(count).fill(undefined).map(() => ({
       velocity: getVelocity(-0.2, 0.2),
       rotation: getRotation(),
+      shape: getRandomShape(),
     })),
   )
   // Store refs to meshes
@@ -71,7 +80,7 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
 
         mesh.rotation.set(particles[i].rotation, particles[i].rotation, particles[i].rotation)
       }
-      console.log({ elapsed, duration })
+
       if (elapsed < duration) {
         requestAnimationFrame(animate)
       }
@@ -94,7 +103,18 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
             if (el) meshRefs.current[i] = el
           }}
           rotation={[p.rotation, p.rotation, p.rotation]}>
-          <planeGeometry args={[0.12, 0.06]} />
+          {p.shape === 'circle' && <circleGeometry args={[0.06, 12]} />}
+          {p.shape === 'triangle' && (
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                args={[new Float32Array([0, 0.06, 0, -0.06, -0.06, 0, 0.06, -0.06, 0]), 3]}
+                count={3}
+                itemSize={3}
+              />
+            </bufferGeometry>
+          )}
+          {p.shape === 'plane' && <planeGeometry args={[0.12, 0.06]} />}
           <meshStandardMaterial color={color} transparent opacity={1} />
         </mesh>
       ))}
