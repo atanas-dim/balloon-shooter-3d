@@ -87,12 +87,17 @@ const Gun = () => {
   // Animate gun to follow aim
   useFrame(() => {
     if (gunRef.current) {
+      // Set gun position to camera position plus an offset (e.g., in front of camera)
+      const offset = new Vector3(0, -0.2, -1) // adjust as needed
+      const worldOffset = offset.applyQuaternion(camera.quaternion)
+      gunRef.current.position.copy(camera.position).add(worldOffset)
+
       // Calculate the aim direction (with negation if desired)
       const aimVec = new Vector3(aimRef.current.x, aimRef.current.y, 0.5)
         .unproject(camera)
         .sub(camera.position)
         .normalize()
-      // The gun's world position
+      // The gun's world position (after position update)
       const gunWorldPos = gunRef.current.getWorldPosition(new Vector3())
       // Look at a distant point along the aim direction
       const farTarget = gunWorldPos.clone().add(aimVec.multiplyScalar(100))
