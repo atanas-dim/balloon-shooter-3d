@@ -8,6 +8,7 @@ import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
 import { Mesh } from 'three/src/objects/Mesh.js'
 import Environment from '@/components/Environment'
 import Balloon from '@/components/Balloon'
+import { Group } from 'three'
 
 type BalloonDef = {
   id: number
@@ -63,7 +64,7 @@ const Balloons: FC = () => {
   const { camera } = useThree()
   const balloonId = useRef(0)
 
-  const meshRefs = useRef<{ [id: number]: Mesh }>({})
+  const balloonRefs = useRef<{ [id: number]: Group }>({})
 
   // Emit new balloons at intervals
   useEffect(() => {
@@ -102,7 +103,7 @@ const Balloons: FC = () => {
   // Animate balloons
   useFrame(() => {
     balloons.forEach((b) => {
-      const mesh = meshRefs.current[b.id]
+      const mesh = balloonRefs.current[b.id]
       if (mesh) mesh.position.y += b.speed
 
       // REMOVE BALLOON IF IT GOES ABOVE THE POSITIVE/OPPOSITE OF START Y (which was negative)
@@ -122,7 +123,7 @@ const Balloons: FC = () => {
         <Balloon
           key={b.id}
           ref={(ref) => {
-            if (ref) meshRefs.current[b.id] = ref
+            if (ref) balloonRefs.current[b.id] = ref
           }}
           position={[b.x, b.y, b.z]}
           color={b.color}
@@ -145,7 +146,7 @@ const Game: FC = () => {
       <ambientLight intensity={0.7} />
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
       <Balloons />
-      <OrbitControls enablePan={false} enableZoom={false} enableRotate={false} />
+      <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
 
       {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
       <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
