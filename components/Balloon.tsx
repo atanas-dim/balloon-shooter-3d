@@ -1,5 +1,4 @@
 import { type FC, useRef, useState } from 'react'
-import { ThreeEvent } from '@react-three/fiber'
 import { Sphere } from '@react-three/drei/core/shapes'
 import { Group, Mesh } from 'three'
 import ExplodingParticles from '@/components/ExplodingParticles'

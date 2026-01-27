@@ -88,7 +88,7 @@ const Gun = () => {
   useFrame(() => {
     if (gunRef.current) {
       // Set gun position to camera position plus an offset (e.g., in front of camera)
-      const offset = new Vector3(0, -0.2, -1) // adjust as needed
+      const offset = new Vector3(0, -0.4, -1) // adjust as needed
       const worldOffset = offset.applyQuaternion(camera.quaternion)
       gunRef.current.position.copy(camera.position).add(worldOffset)
 
@@ -111,7 +111,7 @@ const Gun = () => {
       {/* Gun */}
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
         {/* Gun barrel: Cylinder, muzzle at [0, 0, 0.5] in local space, aligned along Z axis */}
-        <Cylinder args={[0.1, 0.1, 1, 16]} position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <Cylinder args={[0.05, 0.1, 1, 16]} position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <meshStandardMaterial color="#888" />
         </Cylinder>
       </group>

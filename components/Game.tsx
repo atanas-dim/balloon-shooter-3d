@@ -74,7 +74,7 @@ const Balloons: FC = () => {
       const zClamped = Math.max(BALLOON_MIN_Z, Math.min(0, z))
       const t = (zClamped - BALLOON_MIN_Z) / (0 - BALLOON_MIN_Z)
       const y = START_Y_FARTHEST + t * (START_Y_CLOSEST - START_Y_FARTHEST)
-      const radius = getRandom(BALLOON_MIN_RADIUS, BALLOON_MAX_RADIUS)
+      // const radius = getRandom(BALLOON_MIN_RADIUS, BALLOON_MAX_RADIUS)
       // Calculate X bounds based on camera frustum at this Z
       let minX = -2.5,
         maxX = 2.5
@@ -91,7 +91,7 @@ const Balloons: FC = () => {
           x: getRandom(minX, maxX),
           y,
           z,
-          radius,
+          radius: BALLOON_MAX_RADIUS,
           color: getRandomColor(),
         },
       ])
