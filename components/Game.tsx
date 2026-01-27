@@ -1,14 +1,15 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Plane, Sphere } from '@react-three/drei'
+import { OrbitControls, Plane } from '@react-three/drei'
 import { useRef, useState, useEffect, type FC, useCallback, Suspense } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
 import Environment from '@/components/Environment'
 import Balloon from '@/components/Balloon'
 import { Group } from 'three'
-import { Physics, RigidBody } from '@react-three/rapier'
+import { Physics } from '@react-three/rapier'
+import Gun from '@/components/Gun'
 
 type BalloonDef = {
   id: number
@@ -150,16 +151,12 @@ const Game: FC = () => {
         <Physics gravity={[0, 0.5, 0]}>
           <Balloons />
 
+          <Gun />
+
           {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
           <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
             <meshStandardMaterial color={'green'} />
           </Plane>
-
-          <RigidBody lockTranslations colliders="ball">
-            <Sphere args={[10, 32, 32]} position={[0, 8, 0]}>
-              <meshStandardMaterial color={'yellow'} transparent opacity={0.2} />
-            </Sphere>
-          </RigidBody>
         </Physics>
       </Suspense>
     </Canvas>
