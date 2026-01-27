@@ -59,7 +59,7 @@ const Gun = () => {
 
   // Fire projectile (global click)
   useEffect(() => {
-    const handlePointerDown = () => {
+    const handleFire = () => {
       // Calculate the direction the gun is aiming
       const aimVec = new Vector3(aimRef.current.x, aimRef.current.y, 0.5)
         .unproject(camera)
@@ -80,8 +80,23 @@ const Gun = () => {
       }
       setProjectiles((prev) => [...prev, projectile])
     }
+
+    const handlePointerDown = () => {
+      handleFire()
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        handleFire()
+      }
+    }
+
     window.addEventListener('pointerdown', handlePointerDown)
-    return () => window.removeEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [camera])
 
   // Animate gun to follow aim
