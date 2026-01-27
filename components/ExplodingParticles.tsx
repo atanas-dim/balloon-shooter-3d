@@ -78,7 +78,9 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
         // const opacity = 1 - t / duration
         // mesh.material.opacity = opacity > 0 ? opacity : 0
 
-        mesh.rotation.set(particles[i].rotation, particles[i].rotation, particles[i].rotation)
+        const newRotation = particles[i].rotation + elapsed * 10
+
+        mesh.rotation.set(newRotation, newRotation, newRotation)
       }
 
       if (elapsed < duration) {

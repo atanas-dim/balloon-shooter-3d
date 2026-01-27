@@ -20,17 +20,21 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
   const triggerBurst = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
     if (isBursting) return
+
     setIsBursting(true)
+
     let scale = 1
-    const animate = () => {
+
+    const animateBalloon = () => {
       if (!meshRef.current) return
       scale *= 0.6
       meshRef.current.scale.setScalar(scale)
       if (scale > 0.01) {
-        requestAnimationFrame(animate)
+        requestAnimationFrame(animateBalloon)
       }
     }
-    animate()
+
+    animateBalloon()
   }
 
   return (
