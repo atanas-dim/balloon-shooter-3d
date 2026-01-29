@@ -129,7 +129,14 @@ const Balloons: FC = () => {
         // Get color from per-instance color attribute
         const colorArr = colors
         const color = new Color(colorArr[index * 3 + 0], colorArr[index * 3 + 1], colorArr[index * 3 + 2])
-        setBursts((bursts) => [...bursts, { position: [pos.x, pos.y, pos.z], color: `#${color.getHexString()}` }])
+        setBursts((bursts) => [
+          ...bursts,
+          {
+            position: [pos.x, pos.y, pos.z],
+            color: `#${color.getHexString()}`,
+            key: `burst_${index}_${Date.now()}`,
+          },
+        ])
       }
     }
   }
@@ -178,7 +185,7 @@ const Balloons: FC = () => {
           <meshStandardMaterial
             vertexColors
             transparent
-            opacity={0.5}
+            opacity={0.75}
             metalness={0.65}
             roughness={0.2}
             onBeforeCompile={(shader) => {

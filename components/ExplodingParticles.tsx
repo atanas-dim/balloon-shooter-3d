@@ -21,6 +21,7 @@ const getRandomShape = () => {
 }
 
 type ExplodingParticlesProps = {
+  position?: [number, number, number]
   color?: string
   count?: number
   duration?: number
@@ -28,6 +29,7 @@ type ExplodingParticlesProps = {
 }
 
 const ExplodingParticles: FC<ExplodingParticlesProps> = ({
+  position = [0, 0, 0],
   color = '#ffffff',
   count = 10,
   duration = 2,
@@ -97,7 +99,7 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
   }, [duration, particles])
 
   return (
-    <>
+    <group position={position}>
       {particles.map((p, i) => (
         <mesh
           key={i}
@@ -117,10 +119,10 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
             </bufferGeometry>
           )}
           {p.shape === 'plane' && <planeGeometry args={[0.12, 0.06]} />}
-          <meshStandardMaterial color={color} transparent opacity={1} />
+          <meshStandardMaterial color={color} transparent opacity={0.75} />
         </mesh>
       ))}
-    </>
+    </group>
   )
 }
 
