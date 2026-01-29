@@ -3,6 +3,7 @@ import { useRef, useEffect, type FC, useMemo } from 'react'
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
+import { Color, InstancedBufferAttribute } from 'three'
 
 const COLORS = [
   '#e63946', // red
@@ -23,12 +24,16 @@ type RigidBodyUserData = {
   key: string
 }
 
+export function randomInRange(min: number, max: number): number {
+  return Math.random() * (max - min) + min
+}
+
 function createInstance(): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
   const userData: RigidBodyUserData = { key }
   return {
     key,
-    position: [Math.random() * -10, 0, Math.random() * -10],
+    position: [randomInRange(-5, 5), -8, randomInRange(-5, 5)],
     rotation: [0, 0, 0],
     userData,
   }
@@ -86,25 +91,88 @@ const Balloons: FC = () => {
     })
   })
 
+  // Per-instance color attribute
+  const colors = useMemo(() => {
+    const arr = new Float32Array(COUNT * 3)
+    for (let i = 0; i < COUNT; i++) {
+      const c = new Color(COLORS[i % COLORS.length])
+      arr[i * 3 + 0] = c.r
+      arr[i * 3 + 1] = c.g
+      arr[i * 3 + 2] = c.b
+    }
+    return arr
+  }, [])
+
+  // Per-instance scale attribute
+  const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+
+  // Attach color and scale attributes to geometry
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.geometry.setAttribute('color', new InstancedBufferAttribute(colors, 3))
+      meshRef.current.geometry.setAttribute('instanceScale', new InstancedBufferAttribute(scales.current, 1))
+    }
+  }, [colors])
+
+  // Animate scale to 0 for a given index, then reset
+  const animateScaleToZero = (index: number, onComplete: () => void) => {
+    let scale = 1
+    function step() {
+      if (!meshRef.current) return
+      scale *= 0.7
+      scales.current[index] = scale
+      meshRef.current.geometry.attributes.instanceScale.needsUpdate = true
+      if (scale > 0.01) {
+        requestAnimationFrame(step)
+      } else {
+        onComplete()
+        scales.current[index] = 1
+        meshRef.current.geometry.attributes.instanceScale.needsUpdate = true
+      }
+    }
+    step()
+  }
+
   return (
     <InstancedRigidBodies
       ref={rigidBodies}
       instances={initialPositions}
       colliders="ball"
       type="fixed"
-      position={[5, -8, 5]}
       onCollisionEnter={(e) => {
         if (!rigidBodies.current) return
         const key = (e.target.rigidBody?.userData as RigidBodyUserData)?.key
         if (!key) return
         const index = rigidBodies.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
         if (index !== -1) {
-          resetRigidBody(index)
+          animateScaleToZero(index, () => resetRigidBody(index))
         }
       }}>
-      <instancedMesh args={[undefined, undefined, COUNT]}>
+      <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]}>
         <sphereGeometry args={[1, 24, 24]} />
-        <meshStandardMaterial color="#e63946" />
+        <meshStandardMaterial
+          vertexColors
+          transparent
+          opacity={0.5}
+          metalness={0.65}
+          roughness={0.2}
+          onBeforeCompile={(shader) => {
+            // Inject instanceScale attribute and multiply instanceMatrix
+            shader.vertexShader = shader.vertexShader.replace(
+              '#include <common>',
+              `#include <common>
+              attribute float instanceScale;
+              `,
+            )
+            shader.vertexShader = shader.vertexShader.replace(
+              '#include <begin_vertex>',
+              `#include <begin_vertex>
+              transformed *= instanceScale;
+              `,
+            )
+          }}
+        />
       </instancedMesh>
     </InstancedRigidBodies>
   )
