@@ -1,19 +1,20 @@
 import { useFrame } from '@react-three/fiber'
-
-import { useRef, useState, useEffect, type FC, useCallback } from 'react'
+import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
-import Balloon from '@/components/Balloon'
-import { Group } from 'three'
+import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
+import { Color } from 'three'
 
 type BalloonDef = {
-  id: number
+  key: string
   x: number
   y: number
   z: number
   radius: number
   color: string
 }
+
+const COUNT = 100
 
 const BALLOON_MIN_RADIUS = 0.3
 const BALLOON_MAX_RADIUS = 0.6
@@ -54,77 +55,38 @@ function getFrustumWidthAtZ(camera: PerspectiveCamera, z: number) {
   return height * camera.aspect
 }
 
+function createInstance(): InstancedRigidBodyProps {
+  return {
+    key: 'instance_' + Math.random(),
+    // position: [Math.random() * 10, Math.random() * 10, Math.random() * 10],
+    position: [Math.random() * 10, 0, Math.random() * 10],
+    rotation: [Math.random(), Math.random(), Math.random()],
+  }
+}
+
 const Balloons: FC = () => {
-  const [balloons, setBalloons] = useState<BalloonDef[]>([])
-  const { camera } = useThree()
-  const balloonId = useRef(0)
+  const rigidBodies = useRef<RapierRigidBody[]>(null)
 
-  const balloonRefs = useRef<{ [id: number]: Group }>({})
+  // Prepare instances for InstancedRigidBodies
+  const instances = useMemo(() => {
+    const instances: InstancedRigidBodyProps[] = []
 
-  // Emit new balloons at intervals
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const z = getRandom(BALLOON_MIN_Z, BALLOON_MAX_Z)
-      // The further from the camera (smaller z), the lower the start Y
-      const zClamped = Math.max(BALLOON_MIN_Z, Math.min(0, z))
-      const t = (zClamped - BALLOON_MIN_Z) / (0 - BALLOON_MIN_Z)
-      const y = START_Y_FARTHEST + t * (START_Y_CLOSEST - START_Y_FARTHEST)
-      // const radius = getRandom(BALLOON_MIN_RADIUS, BALLOON_MAX_RADIUS)
-      // Calculate X bounds based on camera frustum at this Z
-      let minX = -2.5,
-        maxX = 2.5
-      if (camera && 'fov' in camera && 'aspect' in camera) {
-        const frustumWidth = getFrustumWidthAtZ(camera, z)
-        minX = -frustumWidth / 2 + BALLOON_MAX_RADIUS
-        maxX = frustumWidth / 2 - BALLOON_MAX_RADIUS
-      }
+    for (let i = 0; i < COUNT; i++) {
+      instances.push({ ...createInstance() })
+    }
 
-      setBalloons((prev) => [
-        ...prev,
-        {
-          id: balloonId.current++,
-          x: getRandom(minX, maxX),
-          y,
-          z,
-          radius: BALLOON_MAX_RADIUS,
-          color: getRandomColor(),
-        },
-      ])
-    }, EMIT_INTERVAL)
-    return () => clearInterval(interval)
-  }, [camera])
-
-  // Animate balloons
-  useFrame(() => {
-    balloons.forEach((b) => {
-      const mesh = balloonRefs.current[b.id]
-
-      // REMOVE BALLOON IF IT GOES ABOVE THE POSITIVE/OPPOSITE OF START Y (which was negative)
-      if (mesh && mesh.position.y > -b.y) {
-        setBalloons((prev) => prev.filter((balloon) => balloon.id !== b.id))
-      }
-    })
-  })
-
-  const removeBalloon = useCallback((id: number) => {
-    setBalloons((prev) => prev.filter((b) => b.id !== id))
+    return instances
   }, [])
 
+  console.log('RERENDER')
+
   return (
-    <>
-      {balloons.map((b) => (
-        <Balloon
-          key={b.id}
-          ref={(ref) => {
-            if (ref) balloonRefs.current[b.id] = ref
-          }}
-          position={[b.x, b.y, b.z]}
-          color={b.color}
-          radius={b.radius}
-          onBurstComplete={() => removeBalloon(b.id)}
-        />
-      ))}
-    </>
+    <InstancedRigidBodies ref={rigidBodies} instances={instances} colliders="ball" type="fixed">
+      <instancedMesh args={[undefined, undefined, COUNT]} count={COUNT} position={[-5, -5, -5]}>
+        <sphereGeometry args={[1, 24, 24]} />
+        <meshStandardMaterial color="#e63946" />
+      </instancedMesh>
+    </InstancedRigidBodies>
   )
 }
 
