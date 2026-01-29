@@ -59,28 +59,19 @@ const Gun: FC = () => {
 
       const idx = activeIndexRef.current
       const instance = instances[idx]
-
-      // Set instance position to muzzle world position
       instance.position = muzzleWorld.toArray()
 
-      // Compute quaternion to rotate default up (Y) to aimVec
+      // Compute quaternion to rotate Y axis to aimVec
       const q = new Quaternion()
       q.setFromUnitVectors(new Vector3(0, 1, 0), aimVec)
-      const euler = new Euler()
-      euler.setFromQuaternion(q, 'XYZ')
+      const euler = new Euler().setFromQuaternion(q, 'XYZ')
       instance.rotation = [euler.x, euler.y, euler.z]
 
       const body = projectileBodiesRef.current?.[idx]
       if (body) {
-        // Set body type to dynamic
-        body.setBodyType(3, true) // 3 = dynamic
-
-        // Set translation to muzzle world position
+        body.setBodyType(3, true)
         body.setTranslation({ x: muzzleWorld.x, y: muzzleWorld.y, z: muzzleWorld.z }, true)
-
-        body.setRotation({ x: euler.x, y: euler.y, z: euler.z, w: q.w }, true)
-
-        // Set velocity towards aim
+        body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true)
         body.setLinvel(
           { x: aimVec.x * PROJECTILE_SPEED, y: aimVec.y * PROJECTILE_SPEED, z: aimVec.z * PROJECTILE_SPEED },
           true,
