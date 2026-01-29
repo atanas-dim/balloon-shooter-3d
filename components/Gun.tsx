@@ -1,6 +1,5 @@
 import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
-import { Cylinder } from '@react-three/drei'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Euler, Group, Quaternion, Vector3 } from 'three'
 
@@ -11,7 +10,7 @@ const MAX_DISTANCE = 100
 function createInstance(): InstancedRigidBodyProps {
   return {
     key: 'proj_' + Math.random(),
-    position: [0, 0, 0], // hidden by default
+    position: [0, -1000, 0], // hidden by default
     rotation: [0, 0, 0],
   }
 }
@@ -50,12 +49,6 @@ const Gun: FC = () => {
       }
       const muzzleLocal = new Vector3(0, 0, 0.5)
       const muzzleWorld = muzzleLocal.clone().applyMatrix4(gunRef.current.matrixWorld)
-      console.log('Firing projectile:', {
-        idx: activeIndexRef.current,
-        muzzleWorld: muzzleWorld.toArray(),
-        aimVec: aimVec.toArray(),
-        cameraPos: camera.position.toArray(),
-      })
 
       const idx = activeIndexRef.current
       const instance = instances[idx]
@@ -91,6 +84,7 @@ const Gun: FC = () => {
       window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('keydown', handleKeyDown)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camera])
 
   // Animate gun to follow aim and reset projectiles
@@ -145,7 +139,7 @@ const Gun: FC = () => {
         colliders="cuboid"
         type="fixed">
         <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
-          <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} rotation={[Math.PI / 2, 0, 0]} />
+          <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
           <meshStandardMaterial color="#222" />
         </instancedMesh>
       </InstancedRigidBodies>
