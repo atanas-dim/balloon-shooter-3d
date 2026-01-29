@@ -1,9 +1,10 @@
-import { useRef, useEffect, type FC, useMemo } from 'react'
+import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
 import { Color, InstancedBufferAttribute, InstancedMesh } from 'three'
+import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 
 const COLORS = [
   '#e63946', // red
@@ -49,6 +50,8 @@ const Balloons: FC = () => {
   const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
   const meshRef = useRef<InstancedMesh>(null)
   const animatingSet = useRef<Set<number>>(new Set())
+
+  const [bursts, setBursts] = useState<Burst[]>([])
 
   // Per-instance color attribute
   const colors = useMemo(() => {
@@ -116,6 +119,21 @@ const Balloons: FC = () => {
     }
   }, [colors])
 
+  const triggerBurst = (index: number) => {
+    // Trigger confetti burst at balloon's position and color
+    if (rigidBodies.current && meshRef.current) {
+      const body = rigidBodies.current[index]
+      if (body) {
+        // Get world position
+        const pos = body.translation()
+        // Get color from per-instance color attribute
+        const colorArr = colors
+        const color = new Color(colorArr[index * 3 + 0], colorArr[index * 3 + 1], colorArr[index * 3 + 2])
+        setBursts((bursts) => [...bursts, { position: [pos.x, pos.y, pos.z], color: `#${color.getHexString()}` }])
+      }
+    }
+  }
+
   // Animate scale to 0 for a given index, then reset
   const animateScaleToZero = (index: number, onComplete: () => void) => {
     if (animatingSet.current.has(index)) return
@@ -130,6 +148,7 @@ const Balloons: FC = () => {
       if (scale > 0.01) {
         requestAnimationFrame(step)
       } else {
+        triggerBurst(index)
         onComplete()
         scales.current[index] = 1
         meshRef.current.geometry.attributes.instanceScale.needsUpdate = true
@@ -139,46 +158,49 @@ const Balloons: FC = () => {
   }
 
   return (
-    <InstancedRigidBodies
-      ref={rigidBodies}
-      instances={initialPositions}
-      colliders="ball"
-      type="fixed"
-      onCollisionEnter={(e) => {
-        if (!rigidBodies.current) return
-        const key = (e.target.rigidBody?.userData as RigidBodyUserData)?.key
-        if (!key) return
-        const index = rigidBodies.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
-        if (index !== -1) {
-          animateScaleToZero(index, () => resetRigidBody(index))
-        }
-      }}>
-      <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]}>
-        <sphereGeometry args={[1, 24, 24]} />
-        <meshStandardMaterial
-          vertexColors
-          transparent
-          opacity={0.5}
-          metalness={0.65}
-          roughness={0.2}
-          onBeforeCompile={(shader) => {
-            // Inject instanceScale attribute and multiply instanceMatrix
-            shader.vertexShader = shader.vertexShader.replace(
-              '#include <common>',
-              `#include <common>
+    <>
+      <InstancedRigidBodies
+        ref={rigidBodies}
+        instances={initialPositions}
+        colliders="ball"
+        type="fixed"
+        onCollisionEnter={(e) => {
+          if (!rigidBodies.current) return
+          const key = (e.target.rigidBody?.userData as RigidBodyUserData)?.key
+          if (!key) return
+          const index = rigidBodies.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
+          if (index !== -1) {
+            animateScaleToZero(index, () => resetRigidBody(index))
+          }
+        }}>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]}>
+          <sphereGeometry args={[1, 24, 24]} />
+          <meshStandardMaterial
+            vertexColors
+            transparent
+            opacity={0.5}
+            metalness={0.65}
+            roughness={0.2}
+            onBeforeCompile={(shader) => {
+              // Inject instanceScale attribute and multiply instanceMatrix
+              shader.vertexShader = shader.vertexShader.replace(
+                '#include <common>',
+                `#include <common>
               attribute float instanceScale;
               `,
-            )
-            shader.vertexShader = shader.vertexShader.replace(
-              '#include <begin_vertex>',
-              `#include <begin_vertex>
+              )
+              shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                `#include <begin_vertex>
               transformed *= instanceScale;
               `,
-            )
-          }}
-        />
-      </instancedMesh>
-    </InstancedRigidBodies>
+              )
+            }}
+          />
+        </instancedMesh>
+      </InstancedRigidBodies>
+      <ConfettiSystem bursts={bursts} />
+    </>
   )
 }
 

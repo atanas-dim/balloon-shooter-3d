@@ -51,12 +51,7 @@ const Balloon: FC<BalloonProps> = ({ ref: groupRef, position, color, radius = 0.
               meshRef.current = ref
             }
           }}
-          args={[radius, 24, 24]}
-          // onClick={(e) => {
-          //   e.stopPropagation()
-          //   triggerBurst()
-          // }}
-        >
+          args={[radius, 24, 24]}>
           <meshStandardMaterial
             color={isAsleep ? 'blue' : color}
             transparent={true}
