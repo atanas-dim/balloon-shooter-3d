@@ -61,7 +61,7 @@ function getVisibleXRangeAtZ(
 function createInstance(camera: Camera, size: { width: number; height: number }): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
   const userData: RigidBodyUserData = { key }
-  const z = randomInRange(-5, 5)
+  const z = randomInRange(-15, -5)
   const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
   return {
     key,
@@ -135,7 +135,7 @@ const Balloons: FC = () => {
     if (body && isPerspectiveCamera(camera)) {
       body.setBodyType(1, true) // 1 = fixed
       // Re-randomize z, then x based on frustum at that z
-      const z = randomInRange(-5, 5)
+      const z = randomInRange(-15, -5)
       const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
       const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
       body.setTranslation(new Vector3(...pos), true)
