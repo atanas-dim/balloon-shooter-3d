@@ -3,7 +3,7 @@ import { useRef, useEffect, type FC, useMemo } from 'react'
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
-import { Color, InstancedBufferAttribute } from 'three'
+import { Color, InstancedBufferAttribute, InstancedMesh } from 'three'
 
 const COLORS = [
   '#e63946', // red
@@ -44,6 +44,23 @@ const Balloons: FC = () => {
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
   const initialPositions = useMemo(() => Array.from({ length: COUNT }, createInstance), [])
+
+  // Per-instance scale attribute
+  const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
+  const meshRef = useRef<InstancedMesh>(null)
+  const animatingSet = useRef<Set<number>>(new Set())
+
+  // Per-instance color attribute
+  const colors = useMemo(() => {
+    const arr = new Float32Array(COUNT * 3)
+    for (let i = 0; i < COUNT; i++) {
+      const c = new Color(COLORS[i % COLORS.length])
+      arr[i * 3 + 0] = c.r
+      arr[i * 3 + 1] = c.g
+      arr[i * 3 + 2] = c.b
+    }
+    return arr
+  }, [])
 
   const addToResetQueue = (index: number) => {
     resetQueue.current.push({ index, resetAt: performance.now() + FLY_TIME })
@@ -91,22 +108,6 @@ const Balloons: FC = () => {
     })
   })
 
-  // Per-instance color attribute
-  const colors = useMemo(() => {
-    const arr = new Float32Array(COUNT * 3)
-    for (let i = 0; i < COUNT; i++) {
-      const c = new Color(COLORS[i % COLORS.length])
-      arr[i * 3 + 0] = c.r
-      arr[i * 3 + 1] = c.g
-      arr[i * 3 + 2] = c.b
-    }
-    return arr
-  }, [])
-
-  // Per-instance scale attribute
-  const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-
   // Attach color and scale attributes to geometry
   useEffect(() => {
     if (meshRef.current) {
@@ -117,6 +118,9 @@ const Balloons: FC = () => {
 
   // Animate scale to 0 for a given index, then reset
   const animateScaleToZero = (index: number, onComplete: () => void) => {
+    if (animatingSet.current.has(index)) return
+    animatingSet.current.add(index)
+
     let scale = 1
     function step() {
       if (!meshRef.current) return
