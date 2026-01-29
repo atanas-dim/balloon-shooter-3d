@@ -119,7 +119,6 @@ const Gun = () => {
       gunRef.current.lookAt(farTarget)
     }
   })
-  console.log({ projectiles })
 
   return (
     <>
