@@ -1,49 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { Cylinder } from '@react-three/drei'
-import { RigidBody } from '@react-three/rapier'
+import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Group, Vector3 } from 'three'
 
+const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 30
+const MAX_DISTANCE = 100
 
-type Projectile = {
-  position: Vector3
-  direction: Vector3
-  key: number
-  created: number
+function createInstance(): InstancedRigidBodyProps {
+  return {
+    key: 'proj_' + Math.random(),
+    position: [0, 0, 0], // hidden by default
+    rotation: [0, 0, 0],
+  }
 }
 
-const ProjectileComponent = ({ position, direction }: { position: Vector3; direction: Vector3 }) => {
-  const [visible, setVisible] = useState(true)
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setVisible(false), 15000)
-    return () => clearTimeout(timeout)
-  }, [])
-
-  if (!visible) return null
-
-  // Compute quaternion to rotate cylinder (default up Y) to direction
-  const q = new Group().quaternion
-  q.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize())
-
-  return (
-    <RigidBody
-      position={position}
-      linearVelocity={direction.clone().multiplyScalar(PROJECTILE_SPEED).toArray() as [number, number, number]}
-      colliders="cuboid">
-      <Cylinder args={[0.05, 0.05, 0.5, 8]} quaternion={[q.x, q.y, q.z, q.w]}>
-        <meshStandardMaterial color="#222" />
-      </Cylinder>
-    </RigidBody>
-  )
-}
-
-const Gun = () => {
+const Gun: FC = () => {
   const { camera, size } = useThree()
   const gunRef = useRef<Group>(null)
-  const [projectiles, setProjectiles] = useState<Projectile[]>([])
   const aimRef = useRef({ x: 0, y: 0 })
+  const projectileBodiesRef = useRef<RapierRigidBody[]>(null)
+  const activeIndexRef = useRef(0)
+  const instances = useMemo(() => Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance), [])
 
   // Mouse move handler (global)
   useEffect(() => {
@@ -57,38 +36,47 @@ const Gun = () => {
     return () => window.removeEventListener('pointermove', handlePointerMove)
   }, [size.width, size.height])
 
-  // Fire projectile (global click)
+  // Fire projectile (global click/space)
   useEffect(() => {
-    const handleFire = () => {
-      // Calculate the direction the gun is aiming
+    function fireProjectile() {
       const aimVec = new Vector3(aimRef.current.x, aimRef.current.y, 0.5)
         .unproject(camera)
         .sub(camera.position)
         .normalize()
 
-      // Get the gun's muzzle world position (tip of the cylinder after rotation)
-      if (!gunRef.current) return
-      // The muzzle is at the tip of the gun mesh: local position [0, 0, 0.5] (matches Cylinder position and rotation)
+      if (!gunRef.current) {
+        console.log('No gunRef.current!')
+        return
+      }
       const muzzleLocal = new Vector3(0, 0, 0.5)
       const muzzleWorld = muzzleLocal.clone().applyMatrix4(gunRef.current.matrixWorld)
+      console.log('Firing projectile:', {
+        idx: activeIndexRef.current,
+        muzzleWorld: muzzleWorld.toArray(),
+        aimVec: aimVec.toArray(),
+        cameraPos: camera.position.toArray(),
+      })
 
-      const projectile: Projectile = {
-        position: muzzleWorld,
-        direction: aimVec,
-        key: Math.random(),
-        created: Date.now(),
+      const idx = activeIndexRef.current
+      const instance = instances[idx]
+      instance.position = muzzleWorld.toArray()
+
+      const body = projectileBodiesRef.current?.[idx]
+      if (!body) {
+        console.log('No rigid body for projectile', idx)
+      } else {
+        console.log('Setting body to dynamic and firing', idx)
+        body.setBodyType(3, true) // 3 = dynamic
+        body.setTranslation(muzzleWorld, true)
+        body.setLinvel(aimVec.clone().multiplyScalar(PROJECTILE_SPEED), true)
       }
-      setProjectiles((prev) => [...prev, projectile])
+
+      activeIndexRef.current = (idx + 1) % PROJECTILE_POOL_SIZE
     }
 
-    const handlePointerDown = () => {
-      handleFire()
-    }
-
+    const handlePointerDown = () => fireProjectile()
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        handleFire()
-      }
+      if (e.code === 'Space') fireProjectile()
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
@@ -99,40 +87,62 @@ const Gun = () => {
     }
   }, [camera])
 
-  // Animate gun to follow aim
+  // Animate gun to follow aim and reset projectiles
   useFrame(() => {
     if (gunRef.current) {
-      // Set gun position to camera position plus an offset (e.g., in front of camera)
-      const offset = new Vector3(0, -0.4, -1) // adjust as needed
+      const offset = new Vector3(0, -0.4, -1)
       const worldOffset = offset.applyQuaternion(camera.quaternion)
       gunRef.current.position.copy(camera.position).add(worldOffset)
 
-      // Calculate the aim direction (with negation if desired)
       const aimVec = new Vector3(aimRef.current.x, aimRef.current.y, 0.5)
         .unproject(camera)
         .sub(camera.position)
         .normalize()
-      // The gun's world position (after position update)
       const gunWorldPos = gunRef.current.getWorldPosition(new Vector3())
-      // Look at a distant point along the aim direction
       const farTarget = gunWorldPos.clone().add(aimVec.multiplyScalar(100))
       gunRef.current.lookAt(farTarget)
     }
+
+    // if (!projectileBodiesRef.current) return
+    // instances.forEach((instance, i) => {
+    //   const body = projectileBodiesRef.current?.[i]
+    //   if (!body) {
+    //     // This can happen on first frame
+    //     return
+    //   }
+    //   const pos = body.translation()
+    //   const posVec = new Vector3(pos.x, pos.y, pos.z)
+    //   if (posVec.distanceTo(camera.position) > MAX_DISTANCE) {
+    //     console.log('Resetting projectile', i, 'pos:', posVec.toArray(), 'camera:', camera.position.toArray())
+    //     body.setBodyType(1, true) // 1 = fixed
+    //     instance.position = [0, -1000, 0]
+    //     body.setTranslation({ x: 0, y: -1000, z: 0 }, true)
+    //     body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    //   }
+    // })
   })
 
   return (
     <>
       {/* Gun */}
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
-        {/* Gun barrel: Cylinder, muzzle at [0, 0, 0.5] in local space, aligned along Z axis */}
-        <Cylinder args={[0.05, 0.1, 1, 16]} position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <Cylinder args={[0.065, 0.1, 1, 32]} position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <meshStandardMaterial color="#888" />
         </Cylinder>
+        {/* Instanced Projectiles */}
+        <InstancedRigidBodies
+          position={[0, 0, 0.85]}
+          ref={projectileBodiesRef}
+          instances={instances}
+          colliders="cuboid"
+          type="fixed">
+          <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
+            <Cylinder args={[0.05, 0.05, 0.5, 32]} rotation={[Math.PI / 2, 0, 0]}>
+              <meshStandardMaterial color="#222" />
+            </Cylinder>
+          </instancedMesh>
+        </InstancedRigidBodies>
       </group>
-      {/* Projectiles */}
-      {projectiles.map((p) => (
-        <ProjectileComponent key={p.key} position={p.position} direction={p.direction} />
-      ))}
     </>
   )
 }

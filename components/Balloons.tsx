@@ -41,10 +41,10 @@ function createInstance(): InstancedRigidBodyProps {
 }
 
 const Balloons: FC = () => {
-  const rigidBodies = useRef<RapierRigidBody[]>(null)
+  const rigidBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
-  const initialPositions = useMemo(() => Array.from({ length: COUNT }, createInstance), [])
+  const instances = useMemo(() => Array.from({ length: COUNT }, createInstance), [])
 
   // Per-instance scale attribute
   const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
@@ -72,9 +72,9 @@ const Balloons: FC = () => {
   // Emit balloons at intervals
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!rigidBodies.current) return
+      if (!rigidBodiesRef.current) return
       const index = activeIndexRef.current
-      const body = rigidBodies.current[index]
+      const body = rigidBodiesRef.current[index]
       if (!body) return
 
       // Set to dynamic and give it an upward velocity
@@ -88,13 +88,13 @@ const Balloons: FC = () => {
       activeIndexRef.current = (index + 1) % COUNT
     }, EMIT_INTERVAL)
     return () => clearInterval(interval)
-  }, [initialPositions])
+  }, [instances])
 
   const resetRigidBody = (index: number) => {
-    const body = rigidBodies.current?.[index]
+    const body = rigidBodiesRef.current?.[index]
     if (body) {
       body.setBodyType(1, true) // 1 = fixed
-      const pos = Array.isArray(initialPositions[index].position) ? initialPositions[index].position : [0, 0, 0]
+      const pos = Array.isArray(instances[index].position) ? instances[index].position : [0, 0, 0]
       body.setTranslation(new Vector3(...pos), true)
     }
   }
@@ -121,8 +121,8 @@ const Balloons: FC = () => {
 
   const triggerBurst = (index: number) => {
     // Trigger confetti burst at balloon's position and color
-    if (rigidBodies.current && meshRef.current) {
-      const body = rigidBodies.current[index]
+    if (rigidBodiesRef.current && meshRef.current) {
+      const body = rigidBodiesRef.current[index]
       if (body) {
         // Get world position
         const pos = body.translation()
@@ -167,15 +167,15 @@ const Balloons: FC = () => {
   return (
     <>
       <InstancedRigidBodies
-        ref={rigidBodies}
-        instances={initialPositions}
+        ref={rigidBodiesRef}
+        instances={instances}
         colliders="ball"
         type="fixed"
         onCollisionEnter={(e) => {
-          if (!rigidBodies.current) return
+          if (!rigidBodiesRef.current) return
           const key = (e.target.rigidBody?.userData as RigidBodyUserData)?.key
           if (!key) return
-          const index = rigidBodies.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
+          const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {
             animateScaleToZero(index, () => resetRigidBody(index))
           }
