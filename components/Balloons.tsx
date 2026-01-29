@@ -23,8 +23,9 @@ const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
 const SPAWN_Y = -8
 
-type RigidBodyUserData = {
+export type RigidBodyUserData = {
   key: string
+  type: 'balloon' | 'projectile'
 }
 
 export function randomInRange(min: number, max: number): number {
@@ -60,7 +61,7 @@ function getVisibleXRangeAtZ(
 // Helper to create a single instance with trapezoidal x range
 function createInstance(camera: Camera, size: { width: number; height: number }): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
-  const userData: RigidBodyUserData = { key }
+  const userData: RigidBodyUserData = { key, type: 'balloon' }
   const z = randomInRange(-15, -5)
   const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
   return {
@@ -79,12 +80,14 @@ const Balloons: FC = () => {
 
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
+    console.log('INSTANCES MEMO CAMERA CHANGE')
     if (!isPerspectiveCamera(camera)) {
       // Optionally, handle orthographic camera differently or throw
       return []
     }
     return Array.from({ length: COUNT }, () => createInstance(camera, size))
-  }, [camera, size])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Per-instance scale attribute
   const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
@@ -118,7 +121,7 @@ const Balloons: FC = () => {
       if (!body) return
 
       // Set to dynamic and give it an upward velocity
-      body.setBodyType(3, true) // 3 = dynamic
+      body.setBodyType(0, true) // 3 = dynamic
       body.setLinvel({ x: 0, y: 5, z: 0 }, true)
 
       // Schedule reset in the queue
@@ -214,9 +217,11 @@ const Balloons: FC = () => {
         instances={instances}
         colliders="ball"
         type="fixed"
+        mass={0.1}
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
-          const key = (e.target.rigidBody?.userData as RigidBodyUserData)?.key
+          const { key, type } = (e.target.rigidBody?.userData as RigidBodyUserData) || {}
+          if (type === 'balloon') return // Ignore balloon-balloon collisions
           if (!key) return
           const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {

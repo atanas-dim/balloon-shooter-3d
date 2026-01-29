@@ -2,16 +2,20 @@ import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Euler, Group, Quaternion, Vector3 } from 'three'
+import { RigidBodyUserData } from './Balloons'
 
 const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 30
 const MAX_DISTANCE = 100
 
 function createInstance(): InstancedRigidBodyProps {
+  const key = 'proj_' + Math.random()
+  const userData: RigidBodyUserData = { key, type: 'projectile' }
   return {
-    key: 'proj_' + Math.random(),
+    key: key,
     position: [0, -1000, 0], // hidden by default
     rotation: [0, 0, 0],
+    userData,
   }
 }
 
@@ -21,7 +25,10 @@ const Gun: FC = () => {
   const aimRef = useRef({ x: 0, y: 0 })
   const projectileBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
-  const instances = useMemo(() => Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance), [])
+  const instances = useMemo(() => {
+    console.log('PROTECTILE INSTANCES MEMO')
+    return Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance)
+  }, [])
 
   // Mouse move handler (global)
   useEffect(() => {
@@ -128,17 +135,11 @@ const Gun: FC = () => {
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
         <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
-          <meshStandardMaterial color="#888" />
+          <meshStandardMaterial color="#888" metalness={0.2} roughness={0.2} />
         </mesh>
       </group>
       {/* Instanced Projectiles */}
-      <InstancedRigidBodies
-        ref={projectileBodiesRef}
-        position={[0, 0, 0.85]}
-        instances={instances}
-        colliders="cuboid"
-        type="fixed"
-        mass={0.1}>
+      <InstancedRigidBodies ref={projectileBodiesRef} instances={instances} colliders="cuboid" type="fixed" mass={1}>
         <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
           <meshStandardMaterial color="#222" />
