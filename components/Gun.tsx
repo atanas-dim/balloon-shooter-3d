@@ -138,7 +138,7 @@ const Gun: FC = () => {
         instances={instances}
         colliders="cuboid"
         type="fixed"
-        mass={1}>
+        mass={0.1}>
         <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
           <meshStandardMaterial color="#222" />
