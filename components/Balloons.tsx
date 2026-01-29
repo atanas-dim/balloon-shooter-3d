@@ -1,31 +1,7 @@
-import { useFrame } from '@react-three/fiber'
 import { useRef, useEffect, type FC, useMemo } from 'react'
-import { useThree } from '@react-three/fiber'
-import { PerspectiveCamera } from 'three/src/cameras/PerspectiveCamera.js'
+
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
-import { Color } from 'three'
-
-type BalloonDef = {
-  key: string
-  x: number
-  y: number
-  z: number
-  radius: number
-  color: string
-}
-
-const COUNT = 100
-
-const BALLOON_MIN_RADIUS = 0.3
-const BALLOON_MAX_RADIUS = 0.6
-
-const BALLOON_MIN_Z = -5
-const BALLOON_MAX_Z = 0
-
-const START_Y_CLOSEST = -3.5
-const START_Y_FARTHEST = -8
-// BALLOON_END_Y will be calculated dynamically based on viewport/camera
-const EMIT_INTERVAL = 1000 // ms
+import { Vector3 } from 'three/src/math/Vector3.js'
 
 const COLORS = [
   '#e63946', // red
@@ -38,51 +14,59 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
-function getRandom(min: number, max: number) {
-  return Math.random() * (max - min) + min
-}
-
-function getRandomColor() {
-  return COLORS[Math.floor(Math.random() * COLORS.length)]
-}
-
-function getFrustumWidthAtZ(camera: PerspectiveCamera, z: number) {
-  // z is in world coordinates relative to camera
-  const camZ = camera.position.z
-  const distance = Math.abs(camZ - z)
-  const vFOV = (camera.fov * Math.PI) / 180 // vertical fov in radians
-  const height = 2 * Math.tan(vFOV / 2) * distance
-  return height * camera.aspect
-}
+const COUNT = 100
+const EMIT_INTERVAL = 2000 // ms
+const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
 
 function createInstance(): InstancedRigidBodyProps {
   return {
     key: 'instance_' + Math.random(),
-    // position: [Math.random() * 10, Math.random() * 10, Math.random() * 10],
-    position: [Math.random() * 10, 0, Math.random() * 10],
-    rotation: [Math.random(), Math.random(), Math.random()],
+    position: [Math.random() * -10, 0, Math.random() * -10],
+    rotation: [0, 0, 0],
   }
 }
 
 const Balloons: FC = () => {
   const rigidBodies = useRef<RapierRigidBody[]>(null)
+  const activeIndexRef = useRef(0)
+  const initialPositions = useMemo(() => Array.from({ length: COUNT }, createInstance), [])
 
-  // Prepare instances for InstancedRigidBodies
-  const instances = useMemo(() => {
-    const instances: InstancedRigidBodyProps[] = []
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!rigidBodies.current) return
+      const i = activeIndexRef.current
+      const body = rigidBodies.current[i]
+      if (!body) return
 
-    for (let i = 0; i < COUNT; i++) {
-      instances.push({ ...createInstance() })
-    }
+      // Set to dynamic and give it an upward velocity
+      body.setBodyType(3, true)
+      // body.setTranslation(initialPositions[i].position, true)
+      body.setLinvel({ x: 0, y: 5, z: 0 }, true)
 
-    return instances
-  }, [])
+      // After FLY_TIME, reset to initial position and fix
+      setTimeout(() => {
+        body.setBodyType(1, true)
+        const pos = initialPositions[i].position
+        if (Array.isArray(pos)) body.setTranslation(new Vector3(...pos), true)
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      }, FLY_TIME)
 
-  console.log('RERENDER')
+      // Move to next index (wrap around)
+      activeIndexRef.current = (i + 1) % COUNT
+    }, EMIT_INTERVAL)
+    return () => clearInterval(interval)
+  }, [initialPositions])
 
   return (
-    <InstancedRigidBodies ref={rigidBodies} instances={instances} colliders="ball" type="fixed">
-      <instancedMesh args={[undefined, undefined, COUNT]} count={COUNT} position={[-5, -5, -5]}>
+    <InstancedRigidBodies
+      ref={rigidBodies}
+      instances={initialPositions}
+      colliders="ball"
+      type="fixed"
+      onCollisionEnter={(event) => {
+        console.log({ colision: event })
+      }}>
+      <instancedMesh args={[undefined, undefined, COUNT]} position={[5, -8, 5]}>
         <sphereGeometry args={[1, 24, 24]} />
         <meshStandardMaterial color="#e63946" />
       </instancedMesh>

@@ -19,7 +19,7 @@ const Game: FC = () => {
       <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
 
       <Suspense>
-        <Physics gravity={[0, 0.5, 0]}>
+        <Physics gravity={[0, 0, 0]}>
           <Balloons />
           <Gun />
 
