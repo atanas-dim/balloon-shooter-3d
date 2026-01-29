@@ -2,7 +2,7 @@ import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { Cylinder } from '@react-three/drei'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
-import { Group, Vector3 } from 'three'
+import { Euler, Group, Quaternion, Vector3 } from 'three'
 
 const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 30
@@ -59,18 +59,33 @@ const Gun: FC = () => {
 
       const idx = activeIndexRef.current
       const instance = instances[idx]
+
+      // Set instance position to muzzle world position
       instance.position = muzzleWorld.toArray()
 
-      const body = projectileBodiesRef.current?.[idx]
-      if (!body) {
-        console.log('No rigid body for projectile', idx)
-      } else {
-        console.log('Setting body to dynamic and firing', idx)
-        body.setBodyType(3, true) // 3 = dynamic
-        body.setTranslation(muzzleWorld, true)
-        body.setLinvel(aimVec.clone().multiplyScalar(PROJECTILE_SPEED), true)
-      }
+      // Compute quaternion to rotate default up (Y) to aimVec
+      const q = new Quaternion()
+      q.setFromUnitVectors(new Vector3(0, 1, 0), aimVec)
+      const euler = new Euler()
+      euler.setFromQuaternion(q, 'XYZ')
+      instance.rotation = [euler.x, euler.y, euler.z]
 
+      const body = projectileBodiesRef.current?.[idx]
+      if (body) {
+        // Set body type to dynamic
+        body.setBodyType(3, true) // 3 = dynamic
+
+        // Set translation to muzzle world position
+        body.setTranslation({ x: muzzleWorld.x, y: muzzleWorld.y, z: muzzleWorld.z }, true)
+
+        body.setRotation({ x: euler.x, y: euler.y, z: euler.z, w: q.w }, true)
+
+        // Set velocity towards aim
+        body.setLinvel(
+          { x: aimVec.x * PROJECTILE_SPEED, y: aimVec.y * PROJECTILE_SPEED, z: aimVec.z * PROJECTILE_SPEED },
+          true,
+        )
+      }
       activeIndexRef.current = (idx + 1) % PROJECTILE_POOL_SIZE
     }
 
@@ -126,23 +141,23 @@ const Gun: FC = () => {
     <>
       {/* Gun */}
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
-        <Cylinder args={[0.065, 0.1, 1, 32]} position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
           <meshStandardMaterial color="#888" />
-        </Cylinder>
-        {/* Instanced Projectiles */}
-        <InstancedRigidBodies
-          position={[0, 0, 0.85]}
-          ref={projectileBodiesRef}
-          instances={instances}
-          colliders="cuboid"
-          type="fixed">
-          <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
-            <Cylinder args={[0.05, 0.05, 0.5, 32]} rotation={[Math.PI / 2, 0, 0]}>
-              <meshStandardMaterial color="#222" />
-            </Cylinder>
-          </instancedMesh>
-        </InstancedRigidBodies>
+        </mesh>
       </group>
+      {/* Instanced Projectiles */}
+      <InstancedRigidBodies
+        ref={projectileBodiesRef}
+        position={[0, 0, 0.85]}
+        instances={instances}
+        colliders="cuboid"
+        type="fixed">
+        <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} rotation={[Math.PI / 2, 0, 0]} />
+          <meshStandardMaterial color="#222" />
+        </instancedMesh>
+      </InstancedRigidBodies>
     </>
   )
 }
