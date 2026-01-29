@@ -5,6 +5,7 @@ import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
 import { Color, InstancedBufferAttribute, InstancedMesh } from 'three'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
+import { useThree } from '@react-three/fiber'
 
 const COLORS = [
   '#e63946', // red
@@ -20,6 +21,7 @@ const COLORS = [
 const COUNT = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
+const SPAWN_Y = -8
 
 type RigidBodyUserData = {
   key: string
@@ -29,22 +31,72 @@ export function randomInRange(min: number, max: number): number {
   return Math.random() * (max - min) + min
 }
 
-function createInstance(): InstancedRigidBodyProps {
+// Helper to get visible x-range at a given z (for perspective camera)
+function getVisibleXRangeAtZ(camera: any, size: { width: number; height: number }, y: number, z: number) {
+  if ('isPerspectiveCamera' in camera && camera.isPerspectiveCamera) {
+    // Distance from camera to y/z
+    const camPos = camera.position
+    // For a typical setup, y is fixed (SPAWN_Y), z varies
+    const dist = Math.sqrt(Math.pow(camPos.y - y, 2) + Math.pow(camPos.z - z, 2))
+    const vFOV = (camera.fov * Math.PI) / 180
+    const frustumHeight = 2 * Math.tan(vFOV / 2) * dist
+    const aspect = size.width / size.height
+    const frustumWidth = frustumHeight * aspect
+    return { min: -frustumWidth / 2, max: frustumWidth / 2 }
+  }
+  return { min: -5, max: 5 }
+}
+
+// Helper to create a single instance with trapezoidal x range
+function createInstance(camera: any, size: { width: number; height: number }): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
   const userData: RigidBodyUserData = { key }
+  const z = randomInRange(-5, 5)
+  const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
   return {
     key,
-    position: [randomInRange(-5, 5), -8, randomInRange(-5, 5)],
+    position: [randomInRange(xMin, xMax), SPAWN_Y, z],
     rotation: [0, 0, 0],
     userData,
   }
 }
 
 const Balloons: FC = () => {
+  const { camera, size } = useThree()
   const rigidBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
-  const instances = useMemo(() => Array.from({ length: COUNT }, createInstance), [])
+
+  // Calculate visible width at y = -8 (spawn height)
+  const [xRange, setXRange] = useState<{ min: number; max: number }>({ min: -5, max: 5 })
+
+  useEffect(() => {
+    // Perspective camera: calculate frustum width at y = spawnY
+    if ('isPerspectiveCamera' in camera && camera.isPerspectiveCamera) {
+      // Camera position
+      const camY = camera.position.y
+      const camZ = camera.position.z
+      // Distance from camera to spawnY
+      const dist = Math.abs(camY - SPAWN_Y)
+      // Vertical fov in radians
+      const vFOV = (camera.fov * Math.PI) / 180
+      // Height of frustum at dist
+      const frustumHeight = 2 * Math.tan(vFOV / 2) * dist
+      // Aspect ratio
+      const aspect = size.width / size.height
+      // Width of frustum at dist
+      const frustumWidth = frustumHeight * aspect
+      setXRange({ min: -frustumWidth / 2, max: frustumWidth / 2 })
+    } else {
+      // Orthographic or fallback
+      setXRange({ min: -5, max: 5 })
+    }
+  }, [camera, size.width, size.height])
+
+  // Memoize instances when camera or size changes
+  const instances = useMemo(() => {
+    return Array.from({ length: COUNT }, () => createInstance(camera, size))
+  }, [camera, size.width, size.height])
 
   // Per-instance scale attribute
   const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
@@ -94,7 +146,10 @@ const Balloons: FC = () => {
     const body = rigidBodiesRef.current?.[index]
     if (body) {
       body.setBodyType(1, true) // 1 = fixed
-      const pos = Array.isArray(instances[index].position) ? instances[index].position : [0, 0, 0]
+      // Re-randomize z, then x based on frustum at that z
+      const z = randomInRange(-5, 5)
+      const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
+      const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
       body.setTranslation(new Vector3(...pos), true)
     }
   }
