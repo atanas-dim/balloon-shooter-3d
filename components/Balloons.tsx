@@ -3,7 +3,7 @@ import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
-import { Color, InstancedBufferAttribute, InstancedMesh } from 'three'
+import { Color, InstancedBufferAttribute, InstancedMesh, PerspectiveCamera, Camera } from 'three'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 import { useThree } from '@react-three/fiber'
 
@@ -31,9 +31,19 @@ export function randomInRange(min: number, max: number): number {
   return Math.random() * (max - min) + min
 }
 
+// Type guard for PerspectiveCamera
+function isPerspectiveCamera(cam: Camera): cam is PerspectiveCamera {
+  return (cam as PerspectiveCamera).isPerspectiveCamera === true
+}
+
 // Helper to get visible x-range at a given z (for perspective camera)
-function getVisibleXRangeAtZ(camera: any, size: { width: number; height: number }, y: number, z: number) {
-  if ('isPerspectiveCamera' in camera && camera.isPerspectiveCamera) {
+function getVisibleXRangeAtZ(
+  camera: Camera,
+  size: { width: number; height: number },
+  y: number,
+  z: number,
+): { min: number; max: number } {
+  if (isPerspectiveCamera(camera)) {
     // Distance from camera to y/z
     const camPos = camera.position
     // For a typical setup, y is fixed (SPAWN_Y), z varies
@@ -48,7 +58,7 @@ function getVisibleXRangeAtZ(camera: any, size: { width: number; height: number 
 }
 
 // Helper to create a single instance with trapezoidal x range
-function createInstance(camera: any, size: { width: number; height: number }): InstancedRigidBodyProps {
+function createInstance(camera: Camera, size: { width: number; height: number }): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
   const userData: RigidBodyUserData = { key }
   const z = randomInRange(-5, 5)
@@ -67,36 +77,14 @@ const Balloons: FC = () => {
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
 
-  // Calculate visible width at y = -8 (spawn height)
-  const [xRange, setXRange] = useState<{ min: number; max: number }>({ min: -5, max: 5 })
-
-  useEffect(() => {
-    // Perspective camera: calculate frustum width at y = spawnY
-    if ('isPerspectiveCamera' in camera && camera.isPerspectiveCamera) {
-      // Camera position
-      const camY = camera.position.y
-      const camZ = camera.position.z
-      // Distance from camera to spawnY
-      const dist = Math.abs(camY - SPAWN_Y)
-      // Vertical fov in radians
-      const vFOV = (camera.fov * Math.PI) / 180
-      // Height of frustum at dist
-      const frustumHeight = 2 * Math.tan(vFOV / 2) * dist
-      // Aspect ratio
-      const aspect = size.width / size.height
-      // Width of frustum at dist
-      const frustumWidth = frustumHeight * aspect
-      setXRange({ min: -frustumWidth / 2, max: frustumWidth / 2 })
-    } else {
-      // Orthographic or fallback
-      setXRange({ min: -5, max: 5 })
-    }
-  }, [camera, size.width, size.height])
-
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
+    if (!isPerspectiveCamera(camera)) {
+      // Optionally, handle orthographic camera differently or throw
+      return []
+    }
     return Array.from({ length: COUNT }, () => createInstance(camera, size))
-  }, [camera, size.width, size.height])
+  }, [camera, size])
 
   // Per-instance scale attribute
   const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
@@ -144,7 +132,7 @@ const Balloons: FC = () => {
 
   const resetRigidBody = (index: number) => {
     const body = rigidBodiesRef.current?.[index]
-    if (body) {
+    if (body && isPerspectiveCamera(camera)) {
       body.setBodyType(1, true) // 1 = fixed
       // Re-randomize z, then x based on frustum at that z
       const z = randomInRange(-5, 5)
