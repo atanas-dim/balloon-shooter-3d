@@ -1,9 +1,9 @@
-import { Cloud, Clouds, CubeCamera } from '@react-three/drei'
-import { createContext, FC, PropsWithChildren, useContext } from 'react'
-import { Color, CubeTexture, MeshBasicMaterial, Texture } from 'three'
+import { Cloud, Clouds } from '@react-three/drei'
+import { type FC } from 'react'
+import { Color, MeshBasicMaterial } from 'three'
 
 const CustomSky = () => (
-  <mesh scale={[100, 100, 100]} position={[0, 0, 0]} castShadow receiveShadow>
+  <mesh scale={[150, 150, 150]} position={[0, 0, 0]}>
     <sphereGeometry args={[1, 64, 64]} />
     <shaderMaterial
       attach="material"
@@ -56,48 +56,52 @@ const CustomSky = () => (
   </mesh>
 )
 
-// EnvMap context and hook
-export const EnvMapContext = createContext<{ texture: CubeTexture | null }>({ texture: null })
-export const useEnvMap = () => useContext(EnvMapContext)
+const Environment: FC = () => (
+  <>
+    <ambientLight intensity={2} />
+    <directionalLight position={[5, 10, -20]} intensity={8} />
+    <directionalLight position={[-45, -20, 20]} intensity={2} />
 
-const Environment: FC<PropsWithChildren> = ({ children }) => (
-  <CubeCamera resolution={256} frames={1}>
-    {(texture) => (
-      <EnvMapContext.Provider value={{ texture: texture as CubeTexture }}>
-        <ambientLight intensity={2} />
-        <directionalLight position={[5, 60, 25]} intensity={12} castShadow />
-
-        {/* Clouds and custom shader sphere are inside CubeCamera */}
-        <Clouds material={MeshBasicMaterial} position={[0, 0, -40]}>
-          <Cloud
-            position={[-10, 8, 5]}
-            seed={5}
-            segments={10}
-            volume={22}
-            bounds={[25, 12, 5]}
-            color="#ebffff"
-            fade={100}
-            speed={0.15}
-            concentrate="random"
-          />
-          <Cloud
-            position={[10, -5, 2]}
-            seed={2}
-            segments={20}
-            volume={15}
-            bounds={[20, 7, 3]}
-            color="hotpink"
-            fade={100}
-            speed={0.15}
-            concentrate="outside"
-          />
-        </Clouds>
-        <CustomSky />
-
-        {children}
-      </EnvMapContext.Provider>
-    )}
-  </CubeCamera>
+    {/* Clouds and custom shader sphere are inside CubeCamera */}
+    <Clouds material={MeshBasicMaterial} position={[0, 0, 0]}>
+      {/* <Cloud
+        position={[0, -8, 0]}
+        seed={5}
+        segments={40}
+        volume={10}
+        bounds={[10, 1, 10]}
+        color="#f70361"
+        fade={0}
+        speed={0}
+        concentrate="inside"
+        opacity={1.4}
+        scale={1}
+      /> */}
+      <Cloud
+        position={[-10, 8, -40]}
+        seed={5}
+        segments={10}
+        volume={22}
+        bounds={[25, 12, 5]}
+        color="#ebffff"
+        fade={100}
+        speed={0.15}
+        concentrate="random"
+      />
+      <Cloud
+        position={[10, -5, -40]}
+        seed={2}
+        segments={20}
+        volume={15}
+        bounds={[20, 7, 3]}
+        color="hotpink"
+        fade={100}
+        speed={0.15}
+        concentrate="outside"
+      />
+    </Clouds>
+    <CustomSky />
+  </>
 )
 
 export default Environment

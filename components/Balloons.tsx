@@ -6,7 +6,6 @@ import { useFrame } from '@react-three/fiber'
 import { Color, InstancedBufferAttribute, InstancedMesh, PerspectiveCamera, Camera } from 'three'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 import { useThree } from '@react-three/fiber'
-import { useEnvMap } from './Environment'
 
 const COLORS = [
   '#e63946', // red
@@ -19,12 +18,12 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
-const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -10, 0]
+const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -1000, 0]
 
 const COUNT = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
-const SPAWN_Y = -7
+const SPAWN_Y = -10
 
 export type RigidBodyUserData = {
   key: string
@@ -79,8 +78,6 @@ const Balloons: FC = () => {
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
 
-  const { texture } = useEnvMap()
-
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
     console.log('BALLOONS MEMO CHANGE')
@@ -121,7 +118,7 @@ const Balloons: FC = () => {
       body.setBodyType(0, false)
 
       // Set initial position for flying balloon
-      const z = randomInRange(-15, -5)
+      const z = randomInRange(-20, -10)
       const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
       const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
       body.setTranslation(new Vector3(...pos), false)
@@ -248,7 +245,6 @@ const Balloons: FC = () => {
             opacity={0.75}
             metalness={0.65}
             roughness={0.2}
-            envMap={texture}
             onBeforeCompile={(shader) => {
               // Inject instanceScale attribute and multiply instanceMatrix
               shader.vertexShader = shader.vertexShader.replace(

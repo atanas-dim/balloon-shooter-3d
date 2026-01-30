@@ -1,11 +1,10 @@
-import { useRef, useEffect, type FC, useMemo } from 'react'
+import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Euler, Group, Quaternion, Vector3 } from 'three'
 import { RigidBodyUserData } from './Balloons'
-import { useEnvMap } from './Environment'
 
-const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -11, 0]
+const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -1010, 0]
 
 const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 50
@@ -32,13 +31,18 @@ const Gun: FC = () => {
   const activeIndexRef = useRef(0)
   const lastProjectileResetRef = useRef(0)
 
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    if (isMounted) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true)
+  }, [isMounted])
+
   const instances = useMemo(() => {
+    if (!isMounted) return
     console.log('PROTECTILE INSTANCES MEMO')
     return Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance)
-  }, [])
-
-  const { texture } = useEnvMap()
-  console.log({ texture })
+  }, [isMounted])
 
   // Mouse move handler (global)
   useEffect(() => {
@@ -54,7 +58,9 @@ const Gun: FC = () => {
 
   // Fire projectile (global click/space)
   useEffect(() => {
+    if (!instances) return
     function fireProjectile() {
+      if (!instances) return
       const aimVec = new Vector3(aimRef.current.x, aimRef.current.y, 0.5)
         .unproject(camera)
         .sub(camera.position)
@@ -101,8 +107,7 @@ const Gun: FC = () => {
       window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('keydown', handleKeyDown)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera])
+  }, [camera, instances])
 
   // Animate gun to follow aim and reset projectiles
   useFrame(() => {
@@ -126,6 +131,7 @@ const Gun: FC = () => {
     lastProjectileResetRef.current = now
 
     if (!projectileBodiesRef.current) return
+    if (!instances) return
     instances.forEach((instance, i) => {
       const body = projectileBodiesRef.current?.[i]
       if (!body) {
@@ -144,6 +150,8 @@ const Gun: FC = () => {
     })
   })
 
+  if (!instances) return null
+
   return (
     <>
       {/* Gun */}
@@ -152,7 +160,8 @@ const Gun: FC = () => {
           <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
           <meshPhysicalMaterial
             color="#888"
-            envMap={texture}
+            // envMap={texture}
+            // lightMap={texture}
             metalness={0.65}
             roughness={0.2}
             envMapIntensity={0.7}
@@ -166,7 +175,7 @@ const Gun: FC = () => {
       <InstancedRigidBodies ref={projectileBodiesRef} instances={instances} colliders="cuboid" type="fixed" mass={1}>
         <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
-          <meshPhysicalMaterial color="#222" envMap={texture} />
+          <meshPhysicalMaterial color="#222" />
         </instancedMesh>
       </InstancedRigidBodies>
     </>

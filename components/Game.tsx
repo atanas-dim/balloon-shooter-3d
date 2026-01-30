@@ -11,21 +11,20 @@ import Balloons from '@/components/Balloons'
 
 const Game: FC = () => {
   return (
-    <Canvas camera={{ position: [0, 0, 10], fov: 30 }} shadows>
+    <Canvas camera={{ position: [0, 0, 10], fov: 30, near: 0.1, far: 500 }} shadows>
       <Suspense>
-        <Environment>
-          <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
+        <Environment />
+        <OrbitControls enablePan={false} enableZoom={false} enableRotate={false} />
 
-          <Physics gravity={[0, 0, 0]}>
-            <Balloons />
-            <Gun />
+        <Physics gravity={[0, 0, 0]}>
+          <Balloons />
+          <Gun />
 
-            {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
-            <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
-              <meshStandardMaterial color={'#00d532'} />
-            </Plane>
-          </Physics>
-        </Environment>
+          {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
+          {/* <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
+            <meshStandardMaterial color={'#00d532'} />
+          </Plane> */}
+        </Physics>
       </Suspense>
     </Canvas>
   )
