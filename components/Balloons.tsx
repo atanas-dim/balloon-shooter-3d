@@ -18,13 +18,12 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
-const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -1000, 0]
+const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -50, 0]
 
 const COUNT = 100
 const EMIT_INTERVAL = 2000 // ms
-const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
-const SPAWN_Y = -10
-
+const FLY_TIME = 30000 // ms (how long a balloon flies before reset)
+const SPAWN_Y = -12
 export type RigidBodyUserData = {
   key: string
   type: 'balloon' | 'projectile'
@@ -239,12 +238,12 @@ const Balloons: FC = () => {
         }}>
         <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]}>
           <sphereGeometry args={[1, 24, 24]} />
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             vertexColors
             transparent
-            opacity={0.75}
             metalness={0.65}
             roughness={0.2}
+            opacity={0.75}
             onBeforeCompile={(shader) => {
               // Inject instanceScale attribute and multiply instanceMatrix
               shader.vertexShader = shader.vertexShader.replace(

@@ -14,7 +14,13 @@ const Game: FC = () => {
     <Canvas camera={{ position: [0, 0, 10], fov: 30, near: 0.1, far: 500 }} shadows>
       <Suspense>
         <Environment />
-        <OrbitControls enablePan={false} enableZoom={false} enableRotate={false} />
+        <OrbitControls
+          enablePan={false}
+          enableZoom={true}
+          enableRotate={true}
+          minPolarAngle={Math.PI / 2.25}
+          maxPolarAngle={Math.PI}
+        />
 
         <Physics gravity={[0, 0, 0]}>
           <Balloons />

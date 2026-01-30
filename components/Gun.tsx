@@ -46,14 +46,14 @@ const Gun: FC = () => {
 
   // Mouse move handler (global)
   useEffect(() => {
-    const handlePointerMove = (e: PointerEvent) => {
-      aimRef.current = {
-        x: (e.clientX / size.width) * 2 - 1,
-        y: -(e.clientY / size.height) * 2 + 1,
-      }
-    }
-    window.addEventListener('pointermove', handlePointerMove)
-    return () => window.removeEventListener('pointermove', handlePointerMove)
+    // const handlePointerMove = (e: PointerEvent) => {
+    //   aimRef.current = {
+    //     x: (e.clientX / size.width) * 2 - 1,
+    //     y: -(e.clientY / size.height) * 2 + 1,
+    //   }
+    // }
+    // window.addEventListener('pointermove', handlePointerMove)
+    // return () => window.removeEventListener('pointermove', handlePointerMove)
   }, [size.width, size.height])
 
   // Fire projectile (global click/space)
@@ -160,10 +160,8 @@ const Gun: FC = () => {
           <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
           <meshPhysicalMaterial
             color="#888"
-            // envMap={texture}
-            // lightMap={texture}
             metalness={0.65}
-            roughness={0.2}
+            roughness={0.4}
             envMapIntensity={0.7}
             clearcoat={1}
             clearcoatRoughness={0}

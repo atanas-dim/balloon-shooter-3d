@@ -1,14 +1,26 @@
-import { Cloud, Clouds, Environment as DreiEnvironment } from '@react-three/drei'
+import { Cloud, Clouds, Environment as DreiEnvironment, Sky } from '@react-three/drei'
 import { type FC } from 'react'
 import { MeshBasicMaterial } from 'three'
 
 const Environment: FC = () => (
   <>
     <ambientLight intensity={2} />
-    <directionalLight position={[5, 10, -20]} intensity={8} castShadow />
+    <directionalLight position={[5, 10, -15]} intensity={8} />
     <DreiEnvironment files={'/gradient-bg.jpg'} background />
+    {/* <Sky /> */}
 
     <Clouds material={MeshBasicMaterial} position={[0, 0, 0]}>
+      {/* <Cloud
+        position={[0, -8, 0]}
+        seed={1}
+        segments={1}
+        volume={5}
+        bounds={[25, 2, 25]}
+        color="#c41286"
+        fade={0}
+        speed={0.1}
+        concentrate="inside"
+      /> */}
       <Cloud
         position={[-10, 8, -40]}
         seed={5}
