@@ -115,7 +115,7 @@ const Balloons: FC = () => {
       if (!body) return
 
       // First set to dynamic
-      body.setBodyType(3, false)
+      body.setBodyType(0, false)
 
       // Set initial position for flying balloon
       const z = randomInRange(-15, -5)
@@ -214,8 +214,8 @@ const Balloons: FC = () => {
         instances={instances}
         colliders="ball"
         type="fixed"
-        // mass={0.5}
-        // restitution={0}
+        mass={0.1}
+        restitution={0}
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return

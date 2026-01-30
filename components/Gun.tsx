@@ -75,7 +75,7 @@ const Gun: FC = () => {
 
       const body = projectileBodiesRef.current?.[idx]
       if (body) {
-        body.setBodyType(0, true) // Has to be 0 to be able to collide with balloons which are 3 (check type defs for description of options)
+        body.setBodyType(3, true) // Has to be 0 to be able to collide with balloons which are 3 (check type defs for description of options)
         body.setTranslation({ x: muzzleWorld.x, y: muzzleWorld.y, z: muzzleWorld.z }, true)
         body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true)
         body.setLinvel(
