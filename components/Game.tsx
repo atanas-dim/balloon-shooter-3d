@@ -16,7 +16,7 @@ const Game: FC = () => {
         <Environment />
         <OrbitControls
           enablePan={false}
-          enableZoom={true}
+          enableZoom={false}
           enableRotate={true}
           minPolarAngle={Math.PI / 2.25}
           maxPolarAngle={Math.PI}

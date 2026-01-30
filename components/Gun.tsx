@@ -1,7 +1,7 @@
 import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
-import { Euler, Group, Quaternion, Vector3 } from 'three'
+import { Euler, Group, InstancedMesh, Quaternion, Vector3 } from 'three'
 import { RigidBodyUserData } from './Balloons'
 
 const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -10, 0]
@@ -30,6 +30,7 @@ const Gun: FC = () => {
   const projectileBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
   const lastProjectileResetRef = useRef(0)
+  const meshRef = useRef<InstancedMesh>(null)
 
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => {
@@ -171,7 +172,7 @@ const Gun: FC = () => {
 
       {/* Instanced Projectiles */}
       <InstancedRigidBodies ref={projectileBodiesRef} instances={instances} colliders="cuboid" type="fixed" mass={1}>
-        <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, PROJECTILE_POOL_SIZE]} frustumCulled={false}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
           <meshPhysicalMaterial color="#222" />
         </instancedMesh>
