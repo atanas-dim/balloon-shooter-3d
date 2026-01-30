@@ -18,7 +18,7 @@ const Game: FC = () => {
           enablePan={false}
           enableZoom={false}
           enableRotate={true}
-          minPolarAngle={Math.PI / 2.25}
+          minPolarAngle={Math.PI / 2.75}
           maxPolarAngle={Math.PI}
         />
 

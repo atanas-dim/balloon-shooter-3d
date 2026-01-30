@@ -18,12 +18,12 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
-const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -50, 0]
+const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -150, 0]
 
 const COUNT = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 30000 // ms (how long a balloon flies before reset)
-const SPAWN_Y = -15
+const SPAWN_Y = -20
 export type RigidBodyUserData = {
   key: string
   type: 'balloon' | 'projectile'

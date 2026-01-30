@@ -4,7 +4,7 @@ import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '
 import { Euler, Group, InstancedMesh, Quaternion, Vector3 } from 'three'
 import { RigidBodyUserData } from './Balloons'
 
-const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -10, 0]
+const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -16, 0]
 
 const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 50

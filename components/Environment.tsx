@@ -10,34 +10,23 @@ const Environment: FC = () => (
     {/* <Sky /> */}
 
     <Clouds material={MeshBasicMaterial} position={[0, 0, 0]}>
-      {/* <Cloud
-        position={[0, -8, 0]}
-        seed={1}
-        segments={1}
-        volume={5}
-        bounds={[25, 2, 25]}
-        color="#c41286"
-        fade={0}
-        speed={0.1}
-        concentrate="inside"
-      /> */}
       <Cloud
         position={[-10, 8, -40]}
-        seed={5}
+        seed={15}
         segments={10}
-        volume={22}
-        bounds={[25, 12, 5]}
+        volume={32}
+        bounds={[60, 12, 60]}
         color="#ebffff"
         fade={100}
         speed={0.15}
-        concentrate="random"
+        concentrate="outside"
       />
       <Cloud
         position={[10, -5, -40]}
-        seed={2}
+        seed={12}
         segments={20}
-        volume={15}
-        bounds={[20, 7, 3]}
+        volume={25}
+        bounds={[60, 7, 60]}
         color="hotpink"
         fade={100}
         speed={0.15}
