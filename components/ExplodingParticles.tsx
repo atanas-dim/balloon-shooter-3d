@@ -119,7 +119,7 @@ const ExplodingParticles: FC<ExplodingParticlesProps> = ({
             </bufferGeometry>
           )}
           {p.shape === 'plane' && <planeGeometry args={[0.12, 0.06]} />}
-          <meshStandardMaterial color={color} transparent opacity={0.75} />
+          <meshStandardMaterial color={color} transparent opacity={0.65} />
         </mesh>
       ))}
     </group>

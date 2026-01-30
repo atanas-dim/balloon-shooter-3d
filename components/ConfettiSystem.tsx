@@ -7,7 +7,7 @@ type ConfettiSystemProps = {
   bursts: Burst[]
 }
 
-const MAX_BURSTS = 10
+const MAX_BURSTS = 15
 
 const ConfettiSystem: FC<ConfettiSystemProps> = ({ bursts }) => {
   const [removedKeys, setRemovedKeys] = useState<Set<string>>(new Set())
@@ -28,7 +28,7 @@ const ConfettiSystem: FC<ConfettiSystemProps> = ({ bursts }) => {
           color={burst.color}
           position={burst.position}
           count={16}
-          duration={1.5}
+          duration={1.2}
           onBurstComplete={() => handleBurstComplete(burst.key)}
         />
       ))}

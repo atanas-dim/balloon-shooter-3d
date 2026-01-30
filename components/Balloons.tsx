@@ -189,6 +189,15 @@ const Balloons: FC = () => {
     if (animatingSet.current.has(index)) return
     animatingSet.current.add(index)
 
+    const body = rigidBodiesRef.current?.[index]
+
+    if (!body) return
+
+    // First stop movement and  fire particle effect
+    body.setLinvel(new Vector3(0, 0, 0), false)
+    body.setBodyType(1, false)
+    triggerBurst(index)
+
     let scale = 1
     function step() {
       if (!meshRef.current) return
@@ -198,7 +207,6 @@ const Balloons: FC = () => {
       if (scale > 0.01) {
         requestAnimationFrame(step)
       } else {
-        triggerBurst(index)
         onComplete()
         scales.current[index] = 1
         meshRef.current.geometry.attributes.instanceScale.needsUpdate = true
@@ -216,12 +224,14 @@ const Balloons: FC = () => {
         type="fixed"
         mass={0.1}
         restitution={0}
+        friction={1}
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
+
           const { key } = (e.target.rigidBody?.userData as RigidBodyUserData) || {}
-          // if (type === 'balloon') return // Ignore balloon-balloon collisions
           if (!key) return
+
           const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {
             animateScaleToZero(index, () => resetRigidBody(index))

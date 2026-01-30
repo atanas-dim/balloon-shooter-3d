@@ -7,7 +7,7 @@ import { RigidBodyUserData } from './Balloons'
 const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -11, 0]
 
 const PROJECTILE_POOL_SIZE = 100
-const PROJECTILE_SPEED = 30
+const PROJECTILE_SPEED = 50
 const MAX_DISTANCE = 100
 
 const PROJECTILE_RESET_INTERVAL = 5000 // ms
