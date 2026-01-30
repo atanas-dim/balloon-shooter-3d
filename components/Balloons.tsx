@@ -9,8 +9,8 @@ import { useThree } from '@react-three/fiber'
 
 const COLORS = [
   '#e63946', // red
-  '#b0e49e', // white
-  '#a8dadc', // light blue
+  '#75c85a', // white
+  '#44b6ba', // light blue
   '#457b9d', // blue
   '#f4d35e', // yellow
   '#43aa8b', // green
@@ -38,25 +38,71 @@ function isPerspectiveCamera(cam: Camera): cam is PerspectiveCamera {
   return (cam as PerspectiveCamera).isPerspectiveCamera === true
 }
 
-// Helper to get visible x-range at a given z (for perspective camera)
-function getVisibleXRangeAtZ(
-  camera: Camera,
-  size: { width: number; height: number },
-  y: number,
-  z: number,
-): { min: number; max: number } {
+// Helper to get the visible angle range (thetaMin, thetaMax) in the XZ plane for the camera
+function getVisibleAngleRangeXZ(camera: Camera, size: { width: number; height: number }): [number, number] {
   if (isPerspectiveCamera(camera)) {
-    // Distance from camera to y/z
-    const camPos = camera.position
-    // For a typical setup, y is fixed (SPAWN_Y), z varies
-    const dist = Math.sqrt(Math.pow(camPos.y - y, 2) + Math.pow(camPos.z - z, 2))
-    const vFOV = (camera.fov * Math.PI) / 180
-    const frustumHeight = 2 * Math.tan(vFOV / 2) * dist
+    // Camera world direction
+    const camDir = new Vector3()
+    camera.getWorldDirection(camDir)
+    // Project the camera direction onto the XZ plane
+    camDir.y = 0
+    camDir.normalize()
+    // Camera yaw (angle in XZ plane)
+    const camYaw = Math.atan2(camDir.z, camDir.x)
+    // Camera horizontal FOV
     const aspect = size.width / size.height
-    const frustumWidth = frustumHeight * aspect
-    return { min: -frustumWidth / 2, max: frustumWidth / 2 }
+    const vFOV = (camera.fov * Math.PI) / 180
+    const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect)
+    // Angle range
+    return [camYaw - hFOV / 2, camYaw + hFOV / 2]
+  } else {
+    return [0, Math.PI * 2]
   }
-  return { min: -5, max: 5 }
+}
+
+// Helper to get the world Y coordinate at the bottom of the camera frustum at a given (x, z)
+function getVisibleBottomYAtXZ(camera: Camera, x: number, z: number): number | null {
+  if (isPerspectiveCamera(camera)) {
+    const camPos = camera.position.clone()
+    // Unproject NDC (0, -1, 0.5) at the given x/z direction
+    const ndc = new Vector3(0, -1, 0.5)
+    ndc.unproject(camera)
+    // Direction from camera to bottom center
+    const dir = ndc.clone().sub(camPos).normalize()
+    // Find t where camPos.x + t*dir.x = x and camPos.z + t*dir.z = z
+    // Solve for t using the largest component (to avoid division by zero)
+    let t = 0
+    if (Math.abs(dir.x) > Math.abs(dir.z)) {
+      t = (x - camPos.x) / dir.x
+    } else {
+      t = (z - camPos.z) / dir.z
+    }
+    const worldAtXZ = camPos.clone().add(dir.multiplyScalar(t))
+    return worldAtXZ.y
+  }
+  return null
+}
+
+// Helper to get a random balloon emission position within the current camera view
+function getBalloonEmitPosition(camera: Camera, size: { width: number; height: number }): [number, number, number] {
+  // Pick a random radius for the ring
+  const r = randomInRange(10, 20)
+
+  // Get the visible angle range in XZ plane
+  const [thetaMin, thetaMax] = getVisibleAngleRangeXZ(camera, size)
+  // Pick a random angle within the visible range
+  const theta = randomInRange(thetaMin, thetaMax)
+  const x = r * Math.cos(theta)
+  const z = r * Math.sin(theta)
+
+  // Calculate SPAWN_Y: 5 units below the current camera view at this (x, z)
+  let spawnY = SPAWN_Y
+  const bottomY = getVisibleBottomYAtXZ(camera, x, z)
+  if (bottomY !== null) {
+    spawnY = Math.min(bottomY - 2, 0) // don't go above y=0
+  }
+
+  return [x, spawnY, z]
 }
 
 // Helper to create a single instance with trapezoidal x range
@@ -116,10 +162,8 @@ const Balloons: FC = () => {
       // First set to dynamic
       body.setBodyType(0, false)
 
-      // Set initial position for flying balloon
-      const z = randomInRange(-20, -10)
-      const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
-      const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
+      // Get a random emission position within the current camera view
+      const pos = getBalloonEmitPosition(camera, size)
       body.setTranslation(new Vector3(...pos), false)
 
       body.setLinvel(new Vector3(0, 2, 0), true) // constant upward velocity

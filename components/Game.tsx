@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Plane } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { type FC, Suspense } from 'react'
 import Environment from '@/components/Environment'
 
@@ -25,11 +25,6 @@ const Game: FC = () => {
         <Physics gravity={[0, 0, 0]}>
           <Balloons />
           <Gun />
-
-          {/* TEST PLANE TO SEE HOW DEEP SHOULD Z AND Y GO */}
-          {/* <Plane args={[10, 10]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]}>
-            <meshStandardMaterial color={'#00d532'} />
-          </Plane> */}
         </Physics>
       </Suspense>
     </Canvas>
