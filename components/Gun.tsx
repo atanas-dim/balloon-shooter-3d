@@ -4,16 +4,20 @@ import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '
 import { Euler, Group, Quaternion, Vector3 } from 'three'
 import { RigidBodyUserData } from './Balloons'
 
+const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -11, 0]
+
 const PROJECTILE_POOL_SIZE = 100
 const PROJECTILE_SPEED = 30
 const MAX_DISTANCE = 100
+
+const PROJECTILE_RESET_INTERVAL = 5000 // ms
 
 function createInstance(): InstancedRigidBodyProps {
   const key = 'proj_' + Math.random()
   const userData: RigidBodyUserData = { key, type: 'projectile' }
   return {
     key: key,
-    position: [0, -1000, 0], // hidden by default
+    position: INITIAL_PROJECTILE_POSITION, // hidden by default
     rotation: [0, 0, 0],
     userData,
   }
@@ -25,6 +29,8 @@ const Gun: FC = () => {
   const aimRef = useRef({ x: 0, y: 0 })
   const projectileBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
+  const lastProjectileResetRef = useRef(0)
+
   const instances = useMemo(() => {
     console.log('PROTECTILE INSTANCES MEMO')
     return Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance)
@@ -110,23 +116,28 @@ const Gun: FC = () => {
       gunRef.current.lookAt(farTarget)
     }
 
-    // if (!projectileBodiesRef.current) return
-    // instances.forEach((instance, i) => {
-    //   const body = projectileBodiesRef.current?.[i]
-    //   if (!body) {
-    //     // This can happen on first frame
-    //     return
-    //   }
-    //   const pos = body.translation()
-    //   const posVec = new Vector3(pos.x, pos.y, pos.z)
-    //   if (posVec.distanceTo(camera.position) > MAX_DISTANCE) {
-    //     console.log('Resetting projectile', i, 'pos:', posVec.toArray(), 'camera:', camera.position.toArray())
-    //     body.setBodyType(1, true) // 1 = fixed
-    //     instance.position = [0, -1000, 0]
-    //     body.setTranslation({ x: 0, y: -1000, z: 0 }, true)
-    //     body.setLinvel({ x: 0, y: 0, z: 0 }, true)
-    //   }
-    // })
+    // Only run projectile reset every 5 seconds
+    const now = performance.now()
+    if (now - lastProjectileResetRef.current < PROJECTILE_RESET_INTERVAL) return
+    lastProjectileResetRef.current = now
+
+    if (!projectileBodiesRef.current) return
+    instances.forEach((instance, i) => {
+      const body = projectileBodiesRef.current?.[i]
+      if (!body) {
+        // This can happen on first frame
+        return
+      }
+      const pos = body.translation()
+      const posVec = new Vector3(pos.x, pos.y, pos.z)
+      if (posVec.distanceTo(camera.position) > MAX_DISTANCE) {
+        console.log('Resetting projectile', i)
+        body.setBodyType(1, true) // 1 = fixed
+        instance.position = INITIAL_PROJECTILE_POSITION
+        body.setTranslation(new Vector3(...INITIAL_PROJECTILE_POSITION), true)
+        body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      }
+    })
   })
 
   return (

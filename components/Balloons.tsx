@@ -18,10 +18,12 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
+const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -10, 0]
+
 const COUNT = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 10000 // ms (how long a balloon flies before reset)
-const SPAWN_Y = -8
+const SPAWN_Y = -7
 
 export type RigidBodyUserData = {
   key: string
@@ -59,14 +61,12 @@ function getVisibleXRangeAtZ(
 }
 
 // Helper to create a single instance with trapezoidal x range
-function createInstance(camera: Camera, size: { width: number; height: number }): InstancedRigidBodyProps {
+function createInstance(): InstancedRigidBodyProps {
   const key = 'instance_' + Math.random()
   const userData: RigidBodyUserData = { key, type: 'balloon' }
-  const z = randomInRange(-15, -5)
-  const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
   return {
     key,
-    position: [randomInRange(xMin, xMax), SPAWN_Y, z],
+    position: INITIAL_BALLOON_POSITION,
     rotation: [0, 0, 0],
     userData,
   }
@@ -80,13 +80,8 @@ const Balloons: FC = () => {
 
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
-    console.log('INSTANCES MEMO CAMERA CHANGE')
-    if (!isPerspectiveCamera(camera)) {
-      // Optionally, handle orthographic camera differently or throw
-      return []
-    }
-    return Array.from({ length: COUNT }, () => createInstance(camera, size))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    console.log('BALLOONS MEMO CHANGE')
+    return Array.from({ length: COUNT }, () => createInstance())
   }, [])
 
   // Per-instance scale attribute
@@ -112,7 +107,6 @@ const Balloons: FC = () => {
     resetQueue.current.push({ index, resetAt: performance.now() + FLY_TIME })
   }
 
-  // Emit balloons at intervals
   useEffect(() => {
     const interval = setInterval(() => {
       if (!rigidBodiesRef.current) return
@@ -120,9 +114,16 @@ const Balloons: FC = () => {
       const body = rigidBodiesRef.current[index]
       if (!body) return
 
-      // Set to dynamic and give it an upward velocity
-      body.setBodyType(0, true) // 3 = dynamic
-      body.setLinvel({ x: 0, y: 5, z: 0 }, true)
+      // First set to dynamic
+      body.setBodyType(3, false)
+
+      // Set initial position for flying balloon
+      const z = randomInRange(-15, -5)
+      const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
+      const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
+      body.setTranslation(new Vector3(...pos), false)
+
+      body.setLinvel(new Vector3(0, 2, 0), true) // constant upward velocity
 
       // Schedule reset in the queue
       addToResetQueue(index)
@@ -135,13 +136,9 @@ const Balloons: FC = () => {
 
   const resetRigidBody = (index: number) => {
     const body = rigidBodiesRef.current?.[index]
-    if (body && isPerspectiveCamera(camera)) {
-      body.setBodyType(1, true) // 1 = fixed
-      // Re-randomize z, then x based on frustum at that z
-      const z = randomInRange(-15, -5)
-      const { min: xMin, max: xMax } = getVisibleXRangeAtZ(camera, size, SPAWN_Y, z)
-      const pos = [randomInRange(xMin, xMax), SPAWN_Y, z]
-      body.setTranslation(new Vector3(...pos), true)
+    if (body) {
+      body.setBodyType(1, false) // 1 = fixed
+      body.setTranslation(new Vector3(...INITIAL_BALLOON_POSITION), false)
     }
   }
 
@@ -217,11 +214,13 @@ const Balloons: FC = () => {
         instances={instances}
         colliders="ball"
         type="fixed"
-        mass={0.1}
+        // mass={0.5}
+        // restitution={0}
+        enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
-          const { key, type } = (e.target.rigidBody?.userData as RigidBodyUserData) || {}
-          if (type === 'balloon') return // Ignore balloon-balloon collisions
+          const { key } = (e.target.rigidBody?.userData as RigidBodyUserData) || {}
+          // if (type === 'balloon') return // Ignore balloon-balloon collisions
           if (!key) return
           const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {
