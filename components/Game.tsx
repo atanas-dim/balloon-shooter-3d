@@ -15,8 +15,8 @@ const Game: FC = () => {
       <Environment />
 
       <ambientLight intensity={2.5} castShadow />
-      <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
-      <OrbitControls enablePan={false} enableZoom={false} enableRotate={false} />
+      <directionalLight position={[5, 10, 5]} intensity={3} castShadow />
+      <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
 
       <Suspense>
         <Physics gravity={[0, 0, 0]}>
