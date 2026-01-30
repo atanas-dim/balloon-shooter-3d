@@ -3,6 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Euler, Group, Quaternion, Vector3 } from 'three'
 import { RigidBodyUserData } from './Balloons'
+import { useEnvMap } from './Environment'
 
 const INITIAL_PROJECTILE_POSITION: [number, number, number] = [0, -11, 0]
 
@@ -35,6 +36,9 @@ const Gun: FC = () => {
     console.log('PROTECTILE INSTANCES MEMO')
     return Array.from({ length: PROJECTILE_POOL_SIZE }, createInstance)
   }, [])
+
+  const { texture } = useEnvMap()
+  console.log({ texture })
 
   // Mouse move handler (global)
   useEffect(() => {
@@ -146,14 +150,23 @@ const Gun: FC = () => {
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
         <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
-          <meshStandardMaterial color="#888" metalness={0.2} roughness={0.2} />
+          <meshPhysicalMaterial
+            color="#888"
+            envMap={texture}
+            metalness={0.65}
+            roughness={0.2}
+            envMapIntensity={0.7}
+            clearcoat={1}
+            clearcoatRoughness={0}
+          />
         </mesh>
       </group>
+
       {/* Instanced Projectiles */}
       <InstancedRigidBodies ref={projectileBodiesRef} instances={instances} colliders="cuboid" type="fixed" mass={1}>
         <instancedMesh args={[undefined, undefined, PROJECTILE_POOL_SIZE]}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
-          <meshStandardMaterial color="#222" />
+          <meshPhysicalMaterial color="#222" envMap={texture} />
         </instancedMesh>
       </InstancedRigidBodies>
     </>

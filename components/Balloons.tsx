@@ -6,6 +6,7 @@ import { useFrame } from '@react-three/fiber'
 import { Color, InstancedBufferAttribute, InstancedMesh, PerspectiveCamera, Camera } from 'three'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 import { useThree } from '@react-three/fiber'
+import { useEnvMap } from './Environment'
 
 const COLORS = [
   '#e63946', // red
@@ -77,6 +78,8 @@ const Balloons: FC = () => {
   const rigidBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
   const resetQueue = useRef<{ index: number; resetAt: number }[]>([])
+
+  const { texture } = useEnvMap()
 
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
@@ -239,12 +242,13 @@ const Balloons: FC = () => {
         }}>
         <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]}>
           <sphereGeometry args={[1, 24, 24]} />
-          <meshStandardMaterial
+          <meshPhysicalMaterial
             vertexColors
             transparent
             opacity={0.75}
             metalness={0.65}
             roughness={0.2}
+            envMap={texture}
             onBeforeCompile={(shader) => {
               // Inject instanceScale attribute and multiply instanceMatrix
               shader.vertexShader = shader.vertexShader.replace(
