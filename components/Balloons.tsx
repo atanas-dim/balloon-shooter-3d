@@ -9,7 +9,7 @@ import { useThree } from '@react-three/fiber'
 
 const COLORS = [
   '#e63946', // red
-  '#f1faee', // white
+  '#b0e49e', // white
   '#a8dadc', // light blue
   '#457b9d', // blue
   '#f4d35e', // yellow

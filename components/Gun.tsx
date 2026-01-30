@@ -159,14 +159,7 @@ const Gun: FC = () => {
       <group ref={gunRef} position={[0, 0, 5]} receiveShadow>
         <mesh position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.065, 0.1, 1, 32]} />
-          <meshPhysicalMaterial
-            color="#888"
-            metalness={0.65}
-            roughness={0.4}
-            envMapIntensity={0.7}
-            clearcoat={1}
-            clearcoatRoughness={0}
-          />
+          <meshPhysicalMaterial color="#515151" metalness={0.65} roughness={0.4} />
         </mesh>
       </group>
 
