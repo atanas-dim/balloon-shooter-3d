@@ -125,7 +125,6 @@ const Balloons: FC = () => {
 
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
-    console.log('BALLOONS MEMO CHANGE')
     return Array.from({ length: COUNT }, () => createInstance())
   }, [])
 
@@ -175,7 +174,7 @@ const Balloons: FC = () => {
       activeIndexRef.current = (index + 1) % COUNT
     }, EMIT_INTERVAL)
     return () => clearInterval(interval)
-  }, [instances])
+  }, [camera, instances, size])
 
   const resetRigidBody = (index: number) => {
     const body = rigidBodiesRef.current?.[index]
@@ -265,7 +264,7 @@ const Balloons: FC = () => {
         instances={instances}
         colliders="ball"
         type="fixed"
-        mass={0.1}
+        // mass={0.1}
         restitution={0}
         friction={1}
         enabledTranslations={[false, true, false]} // only allow y movement
