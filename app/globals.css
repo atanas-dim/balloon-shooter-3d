@@ -5,6 +5,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  overscroll-behavior: none;
+}
+
 body {
   background: black;
   color: white;
