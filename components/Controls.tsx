@@ -14,6 +14,6 @@ export default function Controls() {
     <OrbitControls enablePan={false} enableZoom={false} enableRotate={true} minPolarAngle={MIN_POLAR_ANGLE} />
   ) : (
     // For pointer locked controls we need offset because they have different origin than OrbitControls
-    <PointerLockControls maxPolarAngle={Math.PI - MIN_POLAR_ANGLE} />
+    <PointerLockControls maxPolarAngle={Math.PI - MIN_POLAR_ANGLE} pointerSpeed={0.75} />
   )
 }
