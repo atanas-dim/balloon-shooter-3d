@@ -20,7 +20,7 @@ const COLORS = [
 
 const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -150, 0]
 
-const COUNT = 100
+const BALLOON_POOL_SIZE = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 30000 // ms (how long a balloon flies before reset)
 const SPAWN_Y = -20
@@ -86,7 +86,7 @@ function getVisibleBottomYAtXZ(camera: Camera, x: number, z: number): number | n
 // Helper to get a random balloon emission position within the current camera view
 function getBalloonEmitPosition(camera: Camera, size: { width: number; height: number }): [number, number, number] {
   // Pick a random radius for the ring
-  const r = randomInRange(10, 20)
+  const r = randomInRange(15, 50)
 
   // Get the visible angle range in XZ plane
   const [thetaMin, thetaMax] = getVisibleAngleRangeXZ(camera, size)
@@ -129,11 +129,11 @@ const Balloons: FC = () => {
 
   // Memoize instances when camera or size changes
   const instances = useMemo(() => {
-    return Array.from({ length: COUNT }, () => createInstance())
+    return Array.from({ length: BALLOON_POOL_SIZE }, () => createInstance())
   }, [])
 
   // Per-instance scale attribute
-  const scales = useRef<Float32Array>(new Float32Array(COUNT).fill(1))
+  const scales = useRef<Float32Array>(new Float32Array(BALLOON_POOL_SIZE).fill(1))
   const meshRef = useRef<InstancedMesh>(null)
   const animatingSet = useRef<Set<number>>(new Set())
 
@@ -141,8 +141,8 @@ const Balloons: FC = () => {
 
   // Per-instance color attribute
   const colors = useMemo(() => {
-    const arr = new Float32Array(COUNT * 3)
-    for (let i = 0; i < COUNT; i++) {
+    const arr = new Float32Array(BALLOON_POOL_SIZE * 3)
+    for (let i = 0; i < BALLOON_POOL_SIZE; i++) {
       const c = new Color(COLORS[i % COLORS.length])
       arr[i * 3 + 0] = c.r
       arr[i * 3 + 1] = c.g
@@ -175,16 +175,17 @@ const Balloons: FC = () => {
       addToResetQueue(index)
 
       // Move to next index (wrap around)
-      activeIndexRef.current = (index + 1) % COUNT
+      activeIndexRef.current = (index + 1) % BALLOON_POOL_SIZE
     }, EMIT_INTERVAL)
     return () => clearInterval(interval)
   }, [camera, instances, size])
 
-  const resetRigidBody = (index: number) => {
+  const resetBalloon = (index: number) => {
     const body = rigidBodiesRef.current?.[index]
     if (body) {
       body.setBodyType(1, false) // 1 = fixed
       body.setTranslation(new Vector3(...INITIAL_BALLOON_POSITION), false)
+      body.setLinvel({ x: 0, y: 0, z: 0 }, false)
     }
   }
 
@@ -193,7 +194,7 @@ const Balloons: FC = () => {
     const now = performance.now()
     resetQueue.current = resetQueue.current.filter(({ index, resetAt }) => {
       if (now >= resetAt) {
-        resetRigidBody(index)
+        resetBalloon(index)
         return false // remove from queue
       }
       return true // keep in queue
@@ -239,6 +240,7 @@ const Balloons: FC = () => {
 
     if (!body) return
 
+    // TODO Review this logic step by step. The resetBallon also resets linvel and body type. Ideally we should be resetting them once on balloon collision
     // First stop movement and  fire particle effect
     body.setLinvel(new Vector3(0, 0, 0), false)
     body.setBodyType(1, false)
@@ -256,6 +258,8 @@ const Balloons: FC = () => {
         onComplete()
         scales.current[index] = 1
         meshRef.current.geometry.attributes.instanceScale.needsUpdate = true
+
+        animatingSet.current.delete(index) // allow re-animation on next hit
       }
     }
     step()
@@ -269,6 +273,7 @@ const Balloons: FC = () => {
         colliders="ball"
         type="fixed"
         restitution={0}
+        mass={1}
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
@@ -278,10 +283,10 @@ const Balloons: FC = () => {
 
           const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {
-            animateScaleToZero(index, () => resetRigidBody(index))
+            animateScaleToZero(index, () => resetBalloon(index))
           }
         }}>
-        <instancedMesh ref={meshRef} args={[undefined, undefined, COUNT]} frustumCulled={false}>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, BALLOON_POOL_SIZE]} frustumCulled={false}>
           <sphereGeometry args={[1, 24, 24]} />
           <meshStandardMaterial
             vertexColors

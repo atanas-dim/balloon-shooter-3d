@@ -26,7 +26,7 @@ function createInstance(): InstancedRigidBodyProps {
 const Gun: FC = () => {
   const { camera } = useThree()
   const gunRef = useRef<Group>(null)
-  const projectileBodiesRef = useRef<RapierRigidBody[]>(null)
+  const rigidBodiesRef = useRef<RapierRigidBody[]>(null)
   const activeIndexRef = useRef(0)
   const lastProjectileResetRef = useRef(0)
   const meshRef = useRef<InstancedMesh>(null)
@@ -58,7 +58,7 @@ const Gun: FC = () => {
       const euler = new Euler().setFromQuaternion(q, 'XYZ')
       instance.rotation = [euler.x, euler.y, euler.z]
 
-      const body = projectileBodiesRef.current?.[idx]
+      const body = rigidBodiesRef.current?.[idx]
       if (body) {
         body.setBodyType(3, true)
         body.setTranslation({ x: muzzleWorld.x, y: muzzleWorld.y, z: muzzleWorld.z }, true)
@@ -84,6 +84,15 @@ const Gun: FC = () => {
     }
   }, [camera, instances])
 
+  const resetProjectile = (index: number) => {
+    const body = rigidBodiesRef.current?.[index]
+    if (body) {
+      body.setBodyType(1, false) // 1 = fixed
+      body.setTranslation(new Vector3(...INITIAL_PROJECTILE_POSITION), false)
+      body.setLinvel({ x: 0, y: 0, z: 0 }, false)
+    }
+  }
+
   // Animate gun to follow camera and reset projectiles
   useFrame(() => {
     if (gunRef.current) {
@@ -103,21 +112,16 @@ const Gun: FC = () => {
     if (now - lastProjectileResetRef.current < PROJECTILE_RESET_INTERVAL) return
     lastProjectileResetRef.current = now
 
-    if (!projectileBodiesRef.current) return
+    if (!rigidBodiesRef.current) return
 
-    instances.forEach((instance, i) => {
-      const body = projectileBodiesRef.current?.[i]
-      if (!body) {
-        // This can happen on first frame
-        return
-      }
+    instances.forEach((_, index) => {
+      const body = rigidBodiesRef.current?.[index]
+      if (!body) return
+
       const pos = body.translation()
       const posVec = new Vector3(pos.x, pos.y, pos.z)
       if (posVec.distanceTo(camera.position) > MAX_DISTANCE) {
-        body.setBodyType(1, true) // 1 = fixed
-        instance.position = INITIAL_PROJECTILE_POSITION
-        body.setTranslation(new Vector3(...INITIAL_PROJECTILE_POSITION), true)
-        body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+        resetProjectile(index)
       }
     })
   })
@@ -136,7 +140,7 @@ const Gun: FC = () => {
 
       {/* Instanced Projectiles */}
       <InstancedRigidBodies
-        ref={projectileBodiesRef}
+        ref={rigidBodiesRef}
         instances={instances}
         colliders="cuboid"
         type="fixed"
