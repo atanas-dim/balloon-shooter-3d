@@ -1,4 +1,4 @@
-import { useRef, useEffect, type FC, useMemo, useState } from 'react'
+import { useRef, useEffect, type FC, useMemo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import { InstancedRigidBodies, RapierRigidBody, InstancedRigidBodyProps } from '@react-three/rapier'
 import { Euler, Group, InstancedMesh, Quaternion, Vector3 } from 'three'
