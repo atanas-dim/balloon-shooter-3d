@@ -11,7 +11,7 @@ const Environment: FC = () => (
 
     <Clouds material={MeshBasicMaterial} position={[0, 0, 0]}>
       <Cloud
-        position={[-10, 8, -40]}
+        position={[0, 0, -10]}
         seed={15}
         segments={10}
         volume={32}
@@ -22,7 +22,7 @@ const Environment: FC = () => (
         concentrate="outside"
       />
       <Cloud
-        position={[10, -5, -40]}
+        position={[0, 0, -10]}
         seed={12}
         segments={20}
         volume={25}

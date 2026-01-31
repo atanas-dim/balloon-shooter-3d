@@ -92,14 +92,18 @@ function getBalloonEmitPosition(camera: Camera, size: { width: number; height: n
   const [thetaMin, thetaMax] = getVisibleAngleRangeXZ(camera, size)
   // Pick a random angle within the visible range
   const theta = randomInRange(thetaMin, thetaMax)
-  const x = r * Math.cos(theta)
-  const z = r * Math.sin(theta)
+
+  // Offset emission center to camera's world position - camera is always at origin of emission ring
+  const camX = camera.position.x
+  const camZ = camera.position.z
+  const x = camX + r * Math.cos(theta)
+  const z = camZ + r * Math.sin(theta)
 
   // Calculate SPAWN_Y: 5 units below the current camera view at this (x, z)
   let spawnY = SPAWN_Y
   const bottomY = getVisibleBottomYAtXZ(camera, x, z)
   if (bottomY !== null) {
-    spawnY = Math.min(bottomY - 2, 0) // don't go above y=0
+    spawnY = Math.min(Math.max(bottomY - 2, -50), 0) // don't go above y=0 and not under -50
   }
 
   return [x, spawnY, z]
