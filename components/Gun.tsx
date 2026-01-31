@@ -140,7 +140,8 @@ const Gun: FC = () => {
         instances={instances}
         colliders="cuboid"
         type="fixed"
-        mass={1}
+        mass={0.01}
+        friction={0}
         restitution={0}>
         <instancedMesh ref={meshRef} args={[undefined, undefined, PROJECTILE_POOL_SIZE]} frustumCulled={false}>
           <cylinderGeometry args={[0.05, 0.05, 0.5, 32]} />
