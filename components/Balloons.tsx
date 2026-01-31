@@ -273,7 +273,7 @@ const Balloons: FC = () => {
         colliders="ball"
         type="fixed"
         restitution={0}
-        mass={1}
+        mass={75}
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return

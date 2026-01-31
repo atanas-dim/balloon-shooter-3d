@@ -11,7 +11,13 @@ export default function Controls() {
   const [mobile] = useState(isMobile())
 
   return mobile ? (
-    <OrbitControls enablePan={false} enableZoom={false} enableRotate={true} minPolarAngle={MIN_POLAR_ANGLE} />
+    <OrbitControls
+      enablePan={false}
+      enableZoom={false}
+      enableRotate={true}
+      minPolarAngle={MIN_POLAR_ANGLE}
+      dampingFactor={0.15}
+    />
   ) : (
     // For pointer locked controls we need offset because they have different origin than OrbitControls
     <PointerLockControls maxPolarAngle={Math.PI - MIN_POLAR_ANGLE} pointerSpeed={0.75} />
