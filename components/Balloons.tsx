@@ -1,7 +1,6 @@
 import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
-import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
 import {
   Color,
@@ -9,11 +8,11 @@ import {
   InstancedMesh,
   PerspectiveCamera,
   Camera,
-  BufferGeometry,
-  Mesh,
-  Object3D,
+  Vector2,
+  Vector3,
+  LatheGeometry,
+  CatmullRomCurve3,
 } from 'three'
-import { useGLTF } from '@react-three/drei'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 import { useThree } from '@react-three/fiber'
 
@@ -28,12 +27,32 @@ const COLORS = [
   '#ff6f61', // coral
 ]
 
+// TODO Refactor file and move to separate utils/helpers/recourses as needed
 const INITIAL_BALLOON_POSITION: [number, number, number] = [0, -150, 0]
 
 const BALLOON_POOL_SIZE = 100
 const EMIT_INTERVAL = 2000 // ms
 const FLY_TIME = 30000 // ms (how long a balloon flies before reset)
 const SPAWN_Y = -20
+
+// Catmull-Rom interpolate the stops for a smooth profile
+// Define your stops as [radius, height] pairs (centered and scaled for visibility)
+const BALLOON_PROFILE_STOPS = [
+  [0.025, -0.55],
+  [0.005, -0.5], // base (lowered)
+  [0.17, -0.4], // base (lowered)
+  [0.41, -0.15], // first stop
+  [0.5, 0.2], // widest point
+  [0.4, 0.5], // neck
+  [0.2, 0.67], // tip
+  [0.035, 0.7075], // tip
+  [0, 0.71], // tip
+].map(([r, h]) => [r * 2.5, h * 2.5]) // scale up for visibility
+const BALLOON_STOP_VECTORS = BALLOON_PROFILE_STOPS.map(([r, h]) => new Vector3(r, h, 0))
+const BALLOON_CURVE = new CatmullRomCurve3(BALLOON_STOP_VECTORS)
+const BALLOON_PROFILE = BALLOON_CURVE.getPoints(64).map((v) => new Vector2(v.x, v.y))
+const BALLOON_GEOMETRY = new LatheGeometry(BALLOON_PROFILE, 128)
+
 export type RigidBodyUserData = {
   key: string
   type: 'balloon' | 'projectile'
@@ -270,18 +289,6 @@ const Balloons: FC = () => {
     step()
   }
 
-  // Load balloon GLB model and extract geometry from the first Mesh child
-  const { scene: balloonScene } = useGLTF('/models/balloon.glb')
-  const balloonGeometry = useMemo(() => {
-    let found: BufferGeometry | undefined = undefined
-    balloonScene.traverse((child: Object3D) => {
-      if (!found && child instanceof Mesh) {
-        found = child.geometry
-      }
-    })
-    return found
-  }, [balloonScene])
-
   return (
     <>
       <InstancedRigidBodies
@@ -301,14 +308,7 @@ const Balloons: FC = () => {
             animateScaleToZero(index, () => resetBalloon(index))
           }
         }}>
-        <instancedMesh
-          ref={meshRef}
-          args={
-            balloonGeometry
-              ? [balloonGeometry, undefined, BALLOON_POOL_SIZE]
-              : [undefined, undefined, BALLOON_POOL_SIZE]
-          }
-          frustumCulled={false}>
+        <instancedMesh ref={meshRef} args={[BALLOON_GEOMETRY, undefined, BALLOON_POOL_SIZE]} frustumCulled={false}>
           <meshStandardMaterial
             vertexColors
             transparent
