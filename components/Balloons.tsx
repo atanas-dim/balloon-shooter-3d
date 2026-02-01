@@ -3,7 +3,17 @@ import { useRef, useEffect, type FC, useMemo, useState } from 'react'
 import { InstancedRigidBodies, InstancedRigidBodyProps, RapierRigidBody } from '@react-three/rapier'
 import { Vector3 } from 'three/src/math/Vector3.js'
 import { useFrame } from '@react-three/fiber'
-import { Color, InstancedBufferAttribute, InstancedMesh, PerspectiveCamera, Camera } from 'three'
+import {
+  Color,
+  InstancedBufferAttribute,
+  InstancedMesh,
+  PerspectiveCamera,
+  Camera,
+  BufferGeometry,
+  Mesh,
+  Object3D,
+} from 'three'
+import { useGLTF } from '@react-three/drei'
 import ConfettiSystem, { Burst } from '@/components/ConfettiSystem'
 import { useThree } from '@react-three/fiber'
 
@@ -161,19 +171,14 @@ const Balloons: FC = () => {
       const index = activeIndexRef.current
       const body = rigidBodiesRef.current[index]
       if (!body) return
-
       // First set to dynamic
       body.setBodyType(0, false)
-
       // Get a random emission position within the current camera view
       const pos = getBalloonEmitPosition(camera, size)
       body.setTranslation(new Vector3(...pos), false)
-
       body.setLinvel(new Vector3(0, 2, 0), true) // constant upward velocity
-
       // Schedule reset in the queue
       addToResetQueue(index)
-
       // Move to next index (wrap around)
       activeIndexRef.current = (index + 1) % BALLOON_POOL_SIZE
     }, EMIT_INTERVAL)
@@ -265,6 +270,18 @@ const Balloons: FC = () => {
     step()
   }
 
+  // Load balloon GLB model and extract geometry from the first Mesh child
+  const { scene: balloonScene } = useGLTF('/models/balloon.glb')
+  const balloonGeometry = useMemo(() => {
+    let found: BufferGeometry | undefined = undefined
+    balloonScene.traverse((child: Object3D) => {
+      if (!found && child instanceof Mesh) {
+        found = child.geometry
+      }
+    })
+    return found
+  }, [balloonScene])
+
   return (
     <>
       <InstancedRigidBodies
@@ -277,17 +294,21 @@ const Balloons: FC = () => {
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
-
           const { key } = (e.target.rigidBody?.userData as RigidBodyUserData) || {}
           if (!key) return
-
           const index = rigidBodiesRef.current.findIndex((rb) => (rb.userData as RigidBodyUserData)?.key === key)
           if (index !== -1) {
             animateScaleToZero(index, () => resetBalloon(index))
           }
         }}>
-        <instancedMesh ref={meshRef} args={[undefined, undefined, BALLOON_POOL_SIZE]} frustumCulled={false}>
-          <sphereGeometry args={[1, 24, 24]} />
+        <instancedMesh
+          ref={meshRef}
+          args={
+            balloonGeometry
+              ? [balloonGeometry, undefined, BALLOON_POOL_SIZE]
+              : [undefined, undefined, BALLOON_POOL_SIZE]
+          }
+          frustumCulled={false}>
           <meshStandardMaterial
             vertexColors
             transparent
