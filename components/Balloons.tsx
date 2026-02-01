@@ -40,7 +40,7 @@ const SPAWN_Y = -20
 const BALLOON_PROFILE_STOPS = [
   [0.025, -0.55],
   [0.005, -0.5], // base (lowered)
-  [0.17, -0.4], // base (lowered)
+  [0.17, -0.4], // base (mid)
   [0.41, -0.15], // first stop
   [0.5, 0.2], // widest point
   [0.4, 0.5], // neck
@@ -196,6 +196,7 @@ const Balloons: FC = () => {
       const pos = getBalloonEmitPosition(camera, size)
       body.setTranslation(new Vector3(...pos), false)
       body.setLinvel(new Vector3(0, 2, 0), true) // constant upward velocity
+
       // Schedule reset in the queue
       addToResetQueue(index)
       // Move to next index (wrap around)
@@ -209,7 +210,8 @@ const Balloons: FC = () => {
     if (body) {
       body.setBodyType(1, false) // 1 = fixed
       body.setTranslation(new Vector3(...INITIAL_BALLOON_POSITION), false)
-      body.setLinvel({ x: 0, y: 0, z: 0 }, false)
+      body.setLinvel(new Vector3(0, 0, 0), false)
+      body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, false)
     }
   }
 
@@ -223,6 +225,20 @@ const Balloons: FC = () => {
       }
       return true // keep in queue
     })
+
+    // Oscillate each balloon gently on the z axis
+    if (rigidBodiesRef.current) {
+      for (let i = 0; i < rigidBodiesRef.current.length; i++) {
+        const body = rigidBodiesRef.current[i]
+        if (body && body.bodyType() !== 1) {
+          // 1 = fixed, skip if not flying
+          // Oscillate with a small amplitude and per-instance phase offset
+          const phase = i * 0.5
+          const angle = Math.sin(now * 0.001 + phase) * 0.05
+          body.setRotation({ x: 0, y: 0, z: angle, w: 1 }, false)
+        }
+      }
+    }
   })
 
   // Attach color and scale attributes to geometry
@@ -297,7 +313,7 @@ const Balloons: FC = () => {
         colliders="ball"
         type="fixed"
         restitution={0}
-        mass={75}
+        mass={250}
         enabledTranslations={[false, true, false]} // only allow y movement
         onCollisionEnter={(e) => {
           if (!rigidBodiesRef.current) return
