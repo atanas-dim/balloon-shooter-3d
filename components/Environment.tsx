@@ -9,25 +9,25 @@ const Environment: FC = () => (
     <DreiEnvironment files={'/gradient-bg.jpg'} background />
     {/* <Sky /> */}
 
-    <Clouds material={MeshBasicMaterial} position={[0, 0, 0]}>
+    <Clouds material={MeshBasicMaterial} position={[0, 0, -10]}>
       <Cloud
-        position={[0, 0, -10]}
-        seed={15}
-        segments={10}
-        volume={32}
-        bounds={[60, 12, 60]}
+        position={[0, 0, 0]}
+        seed={25}
+        segments={30}
+        volume={55}
+        bounds={[100, 100, 100]}
         color="#ebffff"
         fade={100}
         speed={0.15}
         concentrate="outside"
       />
       <Cloud
-        position={[0, 0, -10]}
-        seed={12}
+        position={[0, 0, 0]}
+        seed={25}
         segments={20}
-        volume={25}
-        bounds={[60, 7, 60]}
-        color="hotpink"
+        volume={55}
+        bounds={[100, 100, 100]}
+        color="#ffa4cd"
         fade={100}
         speed={0.15}
         concentrate="outside"

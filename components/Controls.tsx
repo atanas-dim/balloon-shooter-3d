@@ -16,7 +16,8 @@ export default function Controls() {
       enableZoom={false}
       enableRotate={true}
       minPolarAngle={MIN_POLAR_ANGLE}
-      dampingFactor={0.15}
+      dampingFactor={0.2}
+      rotateSpeed={0.5}
     />
   ) : (
     // For pointer locked controls we need offset because they have different origin than OrbitControls
